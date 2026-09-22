@@ -27,8 +27,8 @@ export const COPYRIGHT_LINE_3 = 'Solicite autorização para reprodução ou ada
 export const COPYRIGHT_TEXT = `${COPYRIGHT_LINE_1}\n${COPYRIGHT_LINE_2}\n${COPYRIGHT_LINE_3}`
 
 import corteplanLogoAssetUrl from '@/assets/logo-novo-corteplan-ffd51.jpg'
-import capaAssetUrl from '@/assets/capa-34f51.png'
-import folhaMolduraAssetUrl from '@/assets/folha-01-c7c4c.png'
+import capaAssetUrl from '@/assets/capa-1-75e68.png'
+import folhaMolduraAssetUrl from '@/assets/folha-01-1-cf7ef.png'
 
 export { capaAssetUrl, folhaMolduraAssetUrl }
 
@@ -528,17 +528,21 @@ export const SHEET_FOOTER_Y = 2200 // dividing hairline
 export const SHEET_IMAGE_HEIGHT = SHEET_FOOTER_Y - SHEET_IMAGE_Y // 2112px
 
 // Locked footer positions
-export const FOOTER_LINE1_Y = 2266
+export const FOOTER_LINE1_Y = 2270
 export const FOOTER_LINE2_Y = 2322
-export const FOOTER_LINE3_Y = 2378
+export const FOOTER_LINE3_Y = 2374
 
-export const COL1_VALUE_X = 760 // starts immediately after longest label in col 1 (CLIENTE: )
-export const COL2_VALUE_X = 1810 // starts immediately after longest label in col 2 (RESPONSÁVEL: )
+export const COL1_LABEL_X = 600 // to the right of the vertical orange line (which ends at x ~580)
+export const COL2_LABEL_X = 1550 // Column 2 (~44% of sheet width)
 
 /**
- * Draws the dynamic text and page number over the locked sheet template
+ * Draws all dynamic footer overlays over the sheet template:
+ * - Col 1: CLIENTE, MODELO, DATA (labels in bold dark gray + values in regular graphite)
+ * - Col 2: VENDEDOR, PROJETO, RESPONSÁVEL (labels in bold dark gray + values in regular graphite)
+ * - Copyright box: rounded dark anthracite box with the 3 lines of legal notice
+ * - Big Page Number: high-impact gray digits ("01", "02", etc.) aligned with right edge
  */
-export function drawSheetDynamicValues(
+export function drawSheetFooterOverlays(
   ctx: CanvasRenderingContext2D,
   data: BoardData,
   pageNumber: number,
@@ -547,39 +551,96 @@ export function drawSheetDynamicValues(
   ctx.letterSpacing = '0px'
   ctx.textAlign = 'left'
 
-  // Values in dark graphite font (#222222)
+  // --- Column 1 (CLIENTE, MODELO, DATA) ---
+  // Line 1: CLIENTE:
+  ctx.font = '700 32px Inter, sans-serif'
+  ctx.fillStyle = '#3A3A3A'
+  ctx.fillText('CLIENTE:', COL1_LABEL_X, FOOTER_LINE1_Y)
+  const cliW = ctx.measureText('CLIENTE: ').width
   ctx.font = '400 32px Inter, sans-serif'
   ctx.fillStyle = '#222222'
+  ctx.fillText(data.cliente || '-', COL1_LABEL_X + cliW, FOOTER_LINE1_Y)
 
-  // Column 1 values
-  if (data.cliente) {
-    ctx.fillText(data.cliente, COL1_VALUE_X, FOOTER_LINE1_Y)
-  }
-  if (data.modelo) {
-    ctx.fillText(data.modelo, COL1_VALUE_X, FOOTER_LINE2_Y)
-  }
-  if (data.data) {
-    ctx.fillText(formatDisplayDate(data.data), COL1_VALUE_X, FOOTER_LINE3_Y)
-  }
+  // Line 2: MODELO:
+  ctx.font = '700 32px Inter, sans-serif'
+  ctx.fillStyle = '#3A3A3A'
+  ctx.fillText('MODELO:', COL1_LABEL_X, FOOTER_LINE2_Y)
+  const modW = ctx.measureText('MODELO: ').width
+  ctx.font = '400 32px Inter, sans-serif'
+  ctx.fillStyle = '#222222'
+  ctx.fillText(data.modelo || '-', COL1_LABEL_X + modW, FOOTER_LINE2_Y)
 
-  // Column 2 values
-  if (data.vendedor) {
-    ctx.fillText(data.vendedor, COL2_VALUE_X, FOOTER_LINE1_Y)
-  }
-  if (data.projeto) {
-    ctx.fillText(data.projeto, COL2_VALUE_X, FOOTER_LINE2_Y)
-  }
-  if (data.responsavel) {
-    ctx.fillText(data.responsavel, COL2_VALUE_X, FOOTER_LINE3_Y)
-  }
+  // Line 3: DATA:
+  ctx.font = '700 32px Inter, sans-serif'
+  ctx.fillStyle = '#3A3A3A'
+  ctx.fillText('DATA:', COL1_LABEL_X, FOOTER_LINE3_Y)
+  const datW = ctx.measureText('DATA: ').width
+  ctx.font = '400 32px Inter, sans-serif'
+  ctx.fillStyle = '#222222'
+  ctx.fillText(formatDisplayDate(data.data) || '-', COL1_LABEL_X + datW, FOOTER_LINE3_Y)
 
-  // Big Page Number ("01", "02", "03", etc.)
-  // Fixed position on right: x=3420 (aligned with right margin), y=2356
+  // --- Column 2 (VENDEDOR, PROJETO, RESPONSÁVEL) ---
+  // Line 1: VENDEDOR:
+  ctx.font = '700 32px Inter, sans-serif'
+  ctx.fillStyle = '#3A3A3A'
+  ctx.fillText('VENDEDOR:', COL2_LABEL_X, FOOTER_LINE1_Y)
+  const vendW = ctx.measureText('VENDEDOR: ').width
+  ctx.font = '400 32px Inter, sans-serif'
+  ctx.fillStyle = '#222222'
+  ctx.fillText(data.vendedor || '-', COL2_LABEL_X + vendW, FOOTER_LINE1_Y)
+
+  // Line 2: PROJETO:
+  ctx.font = '700 32px Inter, sans-serif'
+  ctx.fillStyle = '#3A3A3A'
+  ctx.fillText('PROJETO:', COL2_LABEL_X, FOOTER_LINE2_Y)
+  const projW = ctx.measureText('PROJETO: ').width
+  ctx.font = '400 32px Inter, sans-serif'
+  ctx.fillStyle = '#222222'
+  ctx.fillText(data.projeto || '-', COL2_LABEL_X + projW, FOOTER_LINE2_Y)
+
+  // Line 3: RESPONSÁVEL:
+  ctx.font = '700 32px Inter, sans-serif'
+  ctx.fillStyle = '#3A3A3A'
+  ctx.fillText('RESPONSÁVEL:', COL2_LABEL_X, FOOTER_LINE3_Y)
+  const respW = ctx.measureText('RESPONSÁVEL: ').width
+  ctx.font = '400 32px Inter, sans-serif'
+  ctx.fillStyle = '#222222'
+  ctx.fillText(data.responsavel || '-', COL2_LABEL_X + respW, FOOTER_LINE3_Y)
+
+  // --- Big Page Number ("01", "02", "03", etc.) ---
   const pageNumStr = pageNumber < 10 ? `0${pageNumber}` : `${pageNumber}`
   ctx.font = '900 135px Inter, sans-serif'
   ctx.fillStyle = '#737373'
   ctx.textAlign = 'right'
   ctx.fillText(pageNumStr, CANVAS_WIDTH - SHEET_IMAGE_X, 2356)
+
+  // --- Copyright box (Anthracite #3A3A3A with rounded corners) ---
+  const boxLeft = 2490
+  const boxTop = 2266
+  const boxWidth = 685
+  const boxHeight = 125
+  const boxRadius = 10
+
+  ctx.fillStyle = '#3A3A3A'
+  ctx.beginPath()
+  if (ctx.roundRect) {
+    ctx.roundRect(boxLeft, boxTop, boxWidth, boxHeight, boxRadius)
+  } else {
+    ctx.rect(boxLeft, boxTop, boxWidth, boxHeight)
+  }
+  ctx.fill()
+
+  // 3 lines inside copyright box in white
+  ctx.textAlign = 'left'
+  ctx.fillStyle = '#FFFFFF'
+  ctx.font = '400 22px Inter, sans-serif'
+  ctx.letterSpacing = '0px'
+  const boxPaddingX = 26
+  const boxLine1Y = boxTop + 38
+  const boxLineSpacing = 32
+  ctx.fillText(COPYRIGHT_LINE_1, boxLeft + boxPaddingX, boxLine1Y)
+  ctx.fillText(COPYRIGHT_LINE_2, boxLeft + boxPaddingX, boxLine1Y + boxLineSpacing)
+  ctx.fillText(COPYRIGHT_LINE_3, boxLeft + boxPaddingX, boxLine1Y + boxLineSpacing * 2)
 
   ctx.restore()
 }
@@ -698,8 +759,14 @@ export async function renderImagePageCanvas(
     return
   }
 
-  // 4. Render dynamic text values and page number over the locked template
-  drawSheetDynamicValues(ctx, data, pageNumber)
+  // 4. Render labels, values, copyright box and page number over the template
+  // The new blank sheet contains: outer frame, photo separator line, logo Corteplan and vertical orange line.
+  // The dynamic overlays to draw are:
+  // - Col 1 labels (CLIENTE:, MODELO:, DATA:) + values (aligned immediately to the right of the orange line, textLeft = 600)
+  // - Col 2 labels (VENDEDOR:, PROJETO:, RESPONSÁVEL:) + values
+  // - Copyright box (anthracite box + 3 white lines)
+  // - Big page number (e.g. "01", "02")
+  drawSheetFooterOverlays(ctx, data, pageNumber)
 }
 
 /**

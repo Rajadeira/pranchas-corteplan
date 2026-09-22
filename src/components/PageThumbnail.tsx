@@ -1,5 +1,12 @@
 import React from 'react'
-import { formatDisplayDate, capaAssetUrl, folhaMolduraAssetUrl } from '@/lib/pdf/generator'
+import {
+  formatDisplayDate,
+  capaAssetUrl,
+  folhaMolduraAssetUrl,
+  COPYRIGHT_LINE_1,
+  COPYRIGHT_LINE_2,
+  COPYRIGHT_LINE_3,
+} from '@/lib/pdf/generator'
 import type { BoardData } from '@/lib/pdf/generator'
 
 interface PageThumbnailProps {
@@ -67,41 +74,77 @@ export const PageThumbnail: React.FC<PageThumbnailProps> = ({
               )}
             </div>
 
-            {/* Template travado: moldura, logo, divisor laranja, labels, caixa de copyright */}
+            {/* Template travado da folha: moldura, separador de foto, logo grafite e barra laranja */}
             <img
               src={folhaMolduraAssetUrl}
               alt="Template Prancha Travado"
               className="absolute inset-0 w-full h-full object-contain pointer-events-none z-10"
             />
 
-            {/* Valores dinâmicos e número da página em posições fixas sobre o template */}
+            {/* Overlays dinâmicos sobre a folha: labels, valores, caixa de copyright e número de página */}
             <div className="absolute inset-0 pointer-events-none z-20">
-              {/* Coluna 1: CLIENTE, MODELO, DATA (x = 21.66%) */}
+              {/* Coluna 1: CLIENTE, MODELO, DATA (x = 17.2%, imediatamente à direita da barra laranja) */}
               <div
-                className="absolute flex flex-col justify-between text-[3.8px] sm:text-[4.6px] md:text-[5.4px] leading-none font-normal text-[#222222] whitespace-nowrap"
+                className="absolute flex flex-col justify-between text-[3.2px] sm:text-[4px] md:text-[4.8px] leading-none whitespace-nowrap"
                 style={{
-                  left: '21.66%',
-                  top: '90.2%',
-                  height: '5.8%',
+                  left: '17.2%',
+                  top: '90.3%',
+                  height: '5.7%',
                 }}
               >
-                <div className="truncate max-w-[100px]">{data.cliente || ''}</div>
-                <div className="truncate max-w-[100px]">{data.modelo || ''}</div>
-                <div className="truncate max-w-[100px]">{formatDisplayDate(data.data) || ''}</div>
+                <div className="flex items-center gap-[2px] truncate max-w-[110px]">
+                  <span className="font-bold text-[#3A3A3A]">CLIENTE:</span>
+                  <span className="font-normal text-[#222222]">{data.cliente || '-'}</span>
+                </div>
+                <div className="flex items-center gap-[2px] truncate max-w-[110px]">
+                  <span className="font-bold text-[#3A3A3A]">MODELO:</span>
+                  <span className="font-normal text-[#222222]">{data.modelo || '-'}</span>
+                </div>
+                <div className="flex items-center gap-[2px] truncate max-w-[110px]">
+                  <span className="font-bold text-[#3A3A3A]">DATA:</span>
+                  <span className="font-normal text-[#222222]">
+                    {formatDisplayDate(data.data) || '-'}
+                  </span>
+                </div>
               </div>
 
-              {/* Coluna 2: VENDEDOR, PROJETO, RESPONSÁVEL (x = 51.6%) */}
+              {/* Coluna 2: VENDEDOR, PROJETO, RESPONSÁVEL (x = 44.2%) */}
               <div
-                className="absolute flex flex-col justify-between text-[3.8px] sm:text-[4.6px] md:text-[5.4px] leading-none font-normal text-[#222222] whitespace-nowrap"
+                className="absolute flex flex-col justify-between text-[3.2px] sm:text-[4px] md:text-[4.8px] leading-none whitespace-nowrap"
                 style={{
-                  left: '51.6%',
-                  top: '90.2%',
-                  height: '5.8%',
+                  left: '44.2%',
+                  top: '90.3%',
+                  height: '5.7%',
                 }}
               >
-                <div className="truncate max-w-[120px]">{data.vendedor || ''}</div>
-                <div className="truncate max-w-[120px]">{data.projeto || ''}</div>
-                <div className="truncate max-w-[120px]">{data.responsavel || ''}</div>
+                <div className="flex items-center gap-[2px] truncate max-w-[125px]">
+                  <span className="font-bold text-[#3A3A3A]">VENDEDOR:</span>
+                  <span className="font-normal text-[#222222]">{data.vendedor || '-'}</span>
+                </div>
+                <div className="flex items-center gap-[2px] truncate max-w-[125px]">
+                  <span className="font-bold text-[#3A3A3A]">PROJETO:</span>
+                  <span className="font-normal text-[#222222]">{data.projeto || '-'}</span>
+                </div>
+                <div className="flex items-center gap-[2px] truncate max-w-[125px]">
+                  <span className="font-bold text-[#3A3A3A]">RESPONSÁVEL:</span>
+                  <span className="font-normal text-[#222222]">{data.responsavel || '-'}</span>
+                </div>
+              </div>
+
+              {/* Caixa Antracite de Copyright (#3A3A3A) */}
+              <div
+                className="absolute bg-[#3A3A3A] rounded-[2px] flex flex-col justify-center px-[3px] py-[1.5px] text-[#FFFFFF] leading-[1.15]"
+                style={{
+                  left: '71.0%',
+                  top: '90.3%',
+                  width: '19.5%',
+                  height: '5.6%',
+                  fontSize: 'clamp(2.4px, 0.7cqi, 3.8px)',
+                }}
+              >
+                <span className="truncate">{COPYRIGHT_LINE_1}</span>
+                <span className="truncate">{COPYRIGHT_LINE_2}</span>
+                <span className="truncate">{COPYRIGHT_LINE_3}</span>
               </div>
 
               {/* Número grande da página (alinhado à direita com a foto, ~97.5%) */}
@@ -109,7 +152,7 @@ export const PageThumbnail: React.FC<PageThumbnailProps> = ({
                 className="absolute text-right font-black text-[#737373] leading-none select-none"
                 style={{
                   right: '2.5%',
-                  bottom: '4.8%',
+                  bottom: '4.2%',
                   fontSize: 'clamp(14px, 4.4cqi, 20px)',
                   letterSpacing: '-0.5px',
                 }}
