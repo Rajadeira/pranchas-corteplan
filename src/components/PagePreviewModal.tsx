@@ -46,21 +46,43 @@ export const PagePreviewModal: React.FC<PagePreviewModalProps> = ({
         </DialogHeader>
 
         {/* Paper sheet container */}
-        <div className="w-full aspect-[297/210] bg-white border border-[#DCDCDC] shadow-lg rounded-sm p-[2.5%] flex flex-col justify-between select-none relative overflow-hidden">
+        <div className="w-full aspect-[297/210] bg-white border border-[#DCDCDC] shadow-lg rounded-sm select-none relative overflow-hidden">
+          {/* Item 4: Moldura fina cinza clara (#DCDCDC) rente às bordas da folha (~1% de inset) */}
+          <div className="absolute inset-[1%] border border-[#DCDCDC] pointer-events-none z-20" />
+
           {type === 'cover' ? (
-            <div className="w-full h-full flex flex-col items-center justify-center p-8">
-              <CorteplanLogo variant="cover" />
-            </div>
-          ) : (
-            <>
-              {/* Address Top - discreto acima da área da imagem */}
-              <div className="absolute top-[0.6%] left-0 right-0 text-center pointer-events-none z-10">
-                <span className="text-[7.5px] sm:text-[9.5px] text-[#8E8E8E] font-medium tracking-wide">
-                  {ADDRESS_TEXT}
-                </span>
+            // Capa: sem rodapé, sem número
+            <div className="relative w-full h-full flex flex-col justify-between">
+              {/* Logo colorido centralizado horizontalmente e em ~45% da altura, w ~24% */}
+              <div className="flex-1 flex items-center justify-center pb-[5%]">
+                <div className="w-[24%] flex items-center justify-center">
+                  <CorteplanLogo variant="cover" className="w-full" />
+                </div>
               </div>
 
-              {/* Usable Image Area: margem superior ~2.5% até o rodapé (~85% de altura da página) */}
+              {/* Faixa antracite na BASE com detalhe laranja diagonal e endereço em branco itálico */}
+              <div className="w-full h-[4%] shrink-0 relative bg-[#3A3A3A] flex items-center justify-center">
+                {/* Detalhe laranja diagonal no canto esquerdo da faixa */}
+                <div
+                  className="absolute left-0 top-0 bottom-0 w-[4.5%] bg-[#E08A2E] z-10"
+                  style={{
+                    clipPath: 'polygon(0% 100%, 65% 100%, 100% 0%, 35% 0%)',
+                  }}
+                />
+
+                {/* Endereço em texto branco ITÁLICO centralizado */}
+                <span className="text-[6.5px] sm:text-[8.5px] md:text-[9.5px] text-white italic font-medium tracking-wide truncate px-8 z-10">
+                  {ADDRESS_TEXT}
+                </span>
+
+                {/* Filete laranja (#E08A2E) fino na base logo abaixo */}
+                <div className="absolute bottom-0 left-0 right-0 h-[2.5px] bg-[#E08A2E]" />
+              </div>
+            </div>
+          ) : (
+            // Prancha de imagem: topo limpo (sem endereço), imagem com filete cinza claro, rodapé fiel
+            <div className="relative w-full h-full p-[2.5%] pb-[1.5%] flex flex-col justify-between">
+              {/* Usable Image Area: margem superior ~2.5% até o rodapé */}
               <div className="w-full flex-1 min-h-0 border border-[#DCDCDC] bg-[#F7F7F5] overflow-hidden relative flex items-center justify-center">
                 {imageUrl ? (
                   <img src={imageUrl} alt={title} className="w-full h-full object-cover" />
@@ -72,27 +94,27 @@ export const PagePreviewModal: React.FC<PagePreviewModalProps> = ({
                 )}
               </div>
 
-              {/* Standard Footer faithful to Corteplan reference board (~15% da altura) */}
-              <div className="w-full h-[15%] shrink-0 border-t border-[#DCDCDC] flex items-center relative text-[7px] sm:text-[9px] text-[#1F1F1F]">
-                {/* Bloco 1: Logo Oficial Corteplan (~13-14% da largura) */}
+              {/* Standard Footer faithful to Corteplan reference board (~11-12% da altura) */}
+              <div className="w-full h-[12%] shrink-0 border-t border-[#DCDCDC] flex items-center relative text-[6.5px] sm:text-[8px] text-[#1F1F1F]">
+                {/* Bloco 1: Logo monocromático/escuro no rodapé */}
                 <div className="shrink-0 flex items-center w-[13.5%] h-full py-[1%]">
-                  <CorteplanLogo variant="footer" className="w-full max-h-[85%] object-contain" />
+                  <CorteplanLogo variant="footer" className="w-full max-h-[75%] object-contain" />
                 </div>
 
-                {/* Bloco 2: Barra vertical laranja + 3 linhas (CLIENTE, MODELO, DATA) */}
+                {/* Bloco 2: Barra vertical laranja curta + 3 linhas (CLIENTE, MODELO, DATA) */}
                 <div className="flex items-center gap-2 sm:gap-2.5 h-full pl-[2%] pr-[1%]">
-                  <div className="w-[3px] sm:w-[3.5px] h-[72%] bg-[#E08A2E] shrink-0 rounded-none" />
-                  <div className="flex flex-col justify-center leading-[1.3] whitespace-nowrap">
+                  <div className="w-[2.5px] sm:w-[3px] h-[55%] bg-[#E08A2E] shrink-0" />
+                  <div className="flex flex-col justify-center leading-[1.25] whitespace-nowrap">
                     <div>
-                      <span className="font-bold text-[#5A5A5A]">CLIENTE: </span>
+                      <span className="font-bold text-[#3A3A3A]">CLIENTE: </span>
                       <span className="font-normal text-[#222222]">{data.cliente || '-'}</span>
                     </div>
                     <div>
-                      <span className="font-bold text-[#5A5A5A]">MODELO: </span>
+                      <span className="font-bold text-[#3A3A3A]">MODELO: </span>
                       <span className="font-normal text-[#222222]">{data.modelo || '-'}</span>
                     </div>
                     <div>
-                      <span className="font-bold text-[#5A5A5A]">DATA: </span>
+                      <span className="font-bold text-[#3A3A3A]">DATA: </span>
                       <span className="font-normal text-[#222222]">
                         {formatDisplayDate(data.data) || '-'}
                       </span>
@@ -100,35 +122,35 @@ export const PagePreviewModal: React.FC<PagePreviewModalProps> = ({
                   </div>
                 </div>
 
-                {/* Bloco 3: 3 linhas (VENDEDOR, PROJETO, RESPONSÁVEL) começando em ~44% */}
-                <div className="absolute left-[44%] flex flex-col justify-center leading-[1.3] whitespace-nowrap">
+                {/* Bloco 3: 3 linhas (VENDEDOR, PROJETO, RESPONSÁVEL) em ~44% */}
+                <div className="absolute left-[44%] flex flex-col justify-center leading-[1.25] whitespace-nowrap">
                   <div>
-                    <span className="font-bold text-[#5A5A5A]">VENDEDOR: </span>
+                    <span className="font-bold text-[#3A3A3A]">VENDEDOR: </span>
                     <span className="font-normal text-[#222222]">{data.vendedor || '-'}</span>
                   </div>
                   <div>
-                    <span className="font-bold text-[#5A5A5A]">PROJETO: </span>
+                    <span className="font-bold text-[#3A3A3A]">PROJETO: </span>
                     <span className="font-normal text-[#222222]">{data.projeto || '-'}</span>
                   </div>
                   <div>
-                    <span className="font-bold text-[#5A5A5A]">RESPONSÁVEL: </span>
+                    <span className="font-bold text-[#3A3A3A]">RESPONSÁVEL: </span>
                     <span className="font-normal text-[#222222]">{data.responsavel || '-'}</span>
                   </div>
                 </div>
 
-                {/* Bloco 4: À direita: Caixa copyright antracite (#3A3A3A) + Número da página grande cinza */}
-                <div className="ml-auto flex items-center gap-2.5 sm:gap-4 h-full py-[1%]">
-                  <div className="bg-[#3A3A3A] text-white px-2 py-1.5 rounded-[4px] text-[5px] sm:text-[6.5px] leading-[1.3] tracking-tight font-normal text-left max-w-[170px] sm:max-w-[210px]">
+                {/* Bloco 4: Caixa de copyright antracite (#3A3A3A) + Número grande cinza (#737373, peso 900) */}
+                <div className="ml-auto flex items-center gap-2 sm:gap-3.5 h-full py-[1%]">
+                  <div className="bg-[#3A3A3A] text-white px-2 py-1 rounded-[3px] text-[4.5px] sm:text-[5.5px] leading-[1.25] tracking-tight font-normal text-left max-w-[150px] sm:max-w-[190px]">
                     <p className="truncate">{COPYRIGHT_LINE_1}</p>
                     <p className="truncate">{COPYRIGHT_LINE_2}</p>
                     <p className="truncate">{COPYRIGHT_LINE_3}</p>
                   </div>
-                  <div className="text-2xl sm:text-4xl font-bold text-[#737373] leading-none text-right font-sans min-w-[28px]">
+                  <div className="text-2xl sm:text-3xl md:text-4xl font-black text-[#737373] leading-none text-right font-sans min-w-[28px]">
                     {pageNumStr}
                   </div>
                 </div>
               </div>
-            </>
+            </div>
           )}
         </div>
       </DialogContent>

@@ -32,7 +32,7 @@ export const CorteplanLogo: React.FC<CorteplanLogoProps> = ({
         <img
           src={corteplanLogoImg}
           alt={alt}
-          className="h-7 sm:h-8 w-auto max-w-[130px] sm:max-w-[160px] object-contain"
+          className="h-full w-auto max-h-full max-w-full object-contain filter grayscale contrast-125 brightness-90"
         />
       </div>
     )
