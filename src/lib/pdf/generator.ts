@@ -26,6 +26,10 @@ export const COPYRIGHT_LINE_2 = 'Solicite autorização para reprodução ou ada
 
 export const COPYRIGHT_TEXT = `${COPYRIGHT_LINE_1}\n${COPYRIGHT_LINE_2}`
 
+import corteplanLogoAssetUrl from '@/assets/logo-novo-corteplan-ffd51.jpg'
+
+let cachedLogoImg: HTMLImageElement | null = null
+
 /**
  * Loads an image into an HTMLImageElement
  */
@@ -37,6 +41,17 @@ function loadImage(src: string): Promise<HTMLImageElement> {
     img.onerror = (e) => reject(new Error(`Falha ao carregar imagem: ${e}`))
     img.src = src
   })
+}
+
+/**
+ * Loads the official Corteplan logo image (cached)
+ */
+export async function getOfficialLogoImage(): Promise<HTMLImageElement> {
+  if (cachedLogoImg && cachedLogoImg.complete && cachedLogoImg.naturalWidth > 0) {
+    return cachedLogoImg
+  }
+  cachedLogoImg = await loadImage(corteplanLogoAssetUrl)
+  return cachedLogoImg
 }
 
 /**
@@ -101,59 +116,68 @@ export const CANVAS_WIDTH = 3508
 export const CANVAS_HEIGHT = 2480
 
 /**
- * Draws the standard Corteplan Logo on Canvas
+ * Draws the standard Corteplan Logo on Canvas using the official brand image
  */
-export function drawLogoCanvas(ctx: CanvasRenderingContext2D, x: number, y: number, scale = 1) {
+export function drawLogoCanvas(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  maxW = 420,
+  maxH = 92,
+  logoImg?: HTMLImageElement | null,
+) {
+  if (logoImg && logoImg.width > 0 && logoImg.height > 0) {
+    const ratio = logoImg.width / logoImg.height
+    let drawW = maxH * ratio
+    let drawH = maxH
+    if (drawW > maxW) {
+      drawW = maxW
+      drawH = drawW / ratio
+    }
+    const drawY = y + (maxH - drawH) / 2
+    ctx.drawImage(logoImg, x, drawY, drawW, drawH)
+    return
+  }
+
+  // Vector fallback if image is not loaded
   ctx.save()
   ctx.translate(x, y)
-  ctx.scale(scale, scale)
-
-  // Orange rectangle
-  ctx.fillStyle = '#F2612A'
-  ctx.fillRect(0, 0, 16, 60)
-
-  // Brand text
-  ctx.fillStyle = '#1F1F1F'
-  ctx.font = '900 42px Inter, sans-serif'
-  ctx.letterSpacing = '7px'
-  ctx.fillText('CORTEPLAN', 32, 40)
-
-  // Subtitle
-  ctx.fillStyle = '#7A7A7A'
-  ctx.font = '600 13px Inter, sans-serif'
+  ctx.fillStyle = '#E08A2E'
+  ctx.fillRect(0, 8, 14, 76)
+  ctx.fillStyle = '#3A3A3A'
+  ctx.font = '900 48px Inter, sans-serif'
   ctx.letterSpacing = '4px'
-  ctx.fillText('MÓVEIS ESPECIAIS', 34, 58)
-
+  ctx.fillText('CORTEPLAN', 28, 62)
   ctx.restore()
 }
 
 /**
- * Draws the big Cover Logo
+ * Draws the big Cover Logo using the official brand image
  */
-export function drawCoverLogoCanvas(ctx: CanvasRenderingContext2D, cx: number, cy: number) {
+export function drawCoverLogoCanvas(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  cy: number,
+  logoImg?: HTMLImageElement | null,
+) {
+  if (logoImg && logoImg.width > 0 && logoImg.height > 0) {
+    const targetW = 1200
+    const ratio = logoImg.width / logoImg.height
+    const targetH = targetW / ratio
+    ctx.drawImage(logoImg, cx - targetW / 2, cy - targetH / 2, targetW, targetH)
+    return
+  }
+
+  // Fallback vector
   ctx.save()
   ctx.translate(cx, cy)
-
-  // Orange pillar
-  ctx.fillStyle = '#F2612A'
-  const pillarW = 28
-  const pillarH = 110
-  ctx.fillRect(-260, -pillarH / 2, pillarW, pillarH)
-
-  // CORTEPLAN
-  ctx.fillStyle = '#1F1F1F'
-  ctx.font = '900 88px Inter, sans-serif'
-  ctx.letterSpacing = '14px'
-  ctx.textBaseline = 'middle'
-  ctx.fillText('CORTEPLAN', -210, -10)
-
-  // Subtitle
-  ctx.fillStyle = '#6B6B6B'
-  ctx.font = '600 24px Inter, sans-serif'
-  ctx.letterSpacing = '8px'
-  ctx.textBaseline = 'alphabetic'
-  ctx.fillText('MÓVEIS ESPECIAIS & PDV', -206, 42)
-
+  ctx.fillStyle = '#E08A2E'
+  ctx.fillRect(-280, -60, 24, 120)
+  ctx.fillStyle = '#3A3A3A'
+  ctx.font = '900 100px Inter, sans-serif'
+  ctx.letterSpacing = '12px'
+  ctx.textAlign = 'center'
+  ctx.fillText('CORTEPLAN', 0, 35)
   ctx.restore()
 }
 
@@ -167,6 +191,7 @@ export function drawFooterCanvas(
   totalWidth: number,
   footerY: number,
   _footerHeight: number,
+  logoImg?: HTMLImageElement | null,
 ) {
   ctx.save()
 
@@ -178,118 +203,113 @@ export function drawFooterCanvas(
   ctx.lineTo(totalWidth - 80, footerY)
   ctx.stroke()
 
-  // Block 1: Logo Corteplan
-  const logoX = 90
-  const logoY = footerY + 36
-  drawLogoCanvas(ctx, logoX, logoY, 1.25)
+  // Block 1: Logo Corteplan oficial (proporção aprox. 2:1)
+  const logoX = 85
+  const logoY = footerY + 22
+  drawLogoCanvas(ctx, logoX, logoY, 440, 96, logoImg)
 
   // Block 2: Orange vertical bar + 3 lines (CLIENTE:, MODELO:, DATA:)
-  const sec2X = 640
-  const sec2Y = footerY + 25
-  const barH = 78
+  // Standard proportions matching Corteplan layout
+  const sec2X = 580
+  const sec2Y = footerY + 22
+  const barH = 94
 
-  // Orange vertical bar
-  ctx.fillStyle = '#F2612A'
-  ctx.fillRect(sec2X, sec2Y, 6, barH)
+  // Orange vertical bar (#E08A2E)
+  ctx.fillStyle = '#E08A2E'
+  ctx.fillRect(sec2X, sec2Y, 7, barH)
 
-  const textLeft2 = sec2X + 22
+  const textLeft2 = sec2X + 24
   ctx.letterSpacing = '0px'
   ctx.textAlign = 'left'
 
   // Line 1: CLIENTE:
-  ctx.font = '600 19px Inter, sans-serif'
+  ctx.font = '700 20px Inter, sans-serif'
   ctx.fillStyle = '#6B6B6B'
-  ctx.fillText('CLIENTE: ', textLeft2, sec2Y + 20)
+  ctx.fillText('CLIENTE: ', textLeft2, sec2Y + 22)
   const cliLabelW = ctx.measureText('CLIENTE: ').width
-  ctx.font = '500 19px Inter, sans-serif'
+  ctx.font = '600 21px Inter, sans-serif'
   ctx.fillStyle = '#1F1F1F'
-  ctx.fillText(data.cliente || '-', textLeft2 + cliLabelW, sec2Y + 20)
+  ctx.fillText(data.cliente || '-', textLeft2 + cliLabelW, sec2Y + 22)
 
   // Line 2: MODELO:
-  ctx.font = '600 19px Inter, sans-serif'
+  ctx.font = '700 20px Inter, sans-serif'
   ctx.fillStyle = '#6B6B6B'
-  ctx.fillText('MODELO: ', textLeft2, sec2Y + 48)
+  ctx.fillText('MODELO: ', textLeft2, sec2Y + 54)
   const modLabelW = ctx.measureText('MODELO: ').width
-  ctx.font = '500 19px Inter, sans-serif'
+  ctx.font = '600 21px Inter, sans-serif'
   ctx.fillStyle = '#1F1F1F'
-  ctx.fillText(data.modelo || '-', textLeft2 + modLabelW, sec2Y + 48)
+  ctx.fillText(data.modelo || '-', textLeft2 + modLabelW, sec2Y + 54)
 
   // Line 3: DATA:
-  ctx.font = '600 19px Inter, sans-serif'
+  ctx.font = '700 20px Inter, sans-serif'
   ctx.fillStyle = '#6B6B6B'
-  ctx.fillText('DATA: ', textLeft2, sec2Y + 74)
+  ctx.fillText('DATA: ', textLeft2, sec2Y + 84)
   const datLabelW = ctx.measureText('DATA: ').width
-  ctx.font = '500 19px Inter, sans-serif'
+  ctx.font = '600 21px Inter, sans-serif'
   ctx.fillStyle = '#1F1F1F'
-  ctx.fillText(formatDisplayDate(data.data) || '-', textLeft2 + datLabelW, sec2Y + 74)
+  ctx.fillText(formatDisplayDate(data.data) || '-', textLeft2 + datLabelW, sec2Y + 84)
 
   // Block 3: 3 lines (VENDEDOR:, PROJETO:, RESPONSÁVEL:)
-  const sec3X = 1450
+  const sec3X = 1420
   const sec3Y = sec2Y
 
   // Line 1: VENDEDOR:
-  ctx.font = '600 19px Inter, sans-serif'
+  ctx.font = '700 20px Inter, sans-serif'
   ctx.fillStyle = '#6B6B6B'
-  ctx.fillText('VENDEDOR: ', sec3X, sec3Y + 20)
+  ctx.fillText('VENDEDOR: ', sec3X, sec3Y + 22)
   const vendLabelW = ctx.measureText('VENDEDOR: ').width
-  ctx.font = '500 19px Inter, sans-serif'
+  ctx.font = '600 21px Inter, sans-serif'
   ctx.fillStyle = '#1F1F1F'
-  ctx.fillText(data.vendedor || '-', sec3X + vendLabelW, sec3Y + 20)
+  ctx.fillText(data.vendedor || '-', sec3X + vendLabelW, sec3Y + 22)
 
   // Line 2: PROJETO:
-  ctx.font = '600 19px Inter, sans-serif'
+  ctx.font = '700 20px Inter, sans-serif'
   ctx.fillStyle = '#6B6B6B'
-  ctx.fillText('PROJETO: ', sec3X, sec3Y + 48)
+  ctx.fillText('PROJETO: ', sec3X, sec3Y + 54)
   const projLabelW = ctx.measureText('PROJETO: ').width
-  ctx.font = '500 19px Inter, sans-serif'
+  ctx.font = '600 21px Inter, sans-serif'
   ctx.fillStyle = '#1F1F1F'
-  ctx.fillText(data.projeto || '-', sec3X + projLabelW, sec3Y + 48)
+  ctx.fillText(data.projeto || '-', sec3X + projLabelW, sec3Y + 54)
 
   // Line 3: RESPONSÁVEL:
-  ctx.font = '600 19px Inter, sans-serif'
+  ctx.font = '700 20px Inter, sans-serif'
   ctx.fillStyle = '#6B6B6B'
-  ctx.fillText('RESPONSÁVEL: ', sec3X, sec3Y + 74)
+  ctx.fillText('RESPONSÁVEL: ', sec3X, sec3Y + 84)
   const respLabelW = ctx.measureText('RESPONSÁVEL: ').width
-  ctx.font = '500 19px Inter, sans-serif'
+  ctx.font = '600 21px Inter, sans-serif'
   ctx.fillStyle = '#1F1F1F'
-  ctx.fillText(data.responsavel || '-', sec3X + respLabelW, sec3Y + 74)
+  ctx.fillText(data.responsavel || '-', sec3X + respLabelW, sec3Y + 84)
 
   // Block 4: Copyright box + Big Page Number
-  // Page number string: 01, 02, 03...
   const pageNumStr = pageNumber < 10 ? `0${pageNumber}` : `${pageNumber}`
   const rightMargin = totalWidth - 80
   const sec4Right = rightMargin
 
-  // Draw Page Number at right edge
-  ctx.font = '800 68px Inter, sans-serif'
-  ctx.fillStyle = '#6B6B6B'
+  // Draw Page Number at right edge (prominent 86px dark anthracite)
+  ctx.font = '900 86px Inter, sans-serif'
+  ctx.fillStyle = '#4A4A4A'
   ctx.textAlign = 'right'
-  ctx.fillText(pageNumStr, sec4Right, footerY + 84)
+  ctx.fillText(pageNumStr, sec4Right, footerY + 96)
 
-  // Copyright box with thin border (grey container with white background)
+  // Copyright box with dark background (#3A3A3A) and crisp 2-line text
   const pageNumWidth = ctx.measureText(pageNumStr).width
-  const boxRight = sec4Right - pageNumWidth - 42
-  const boxWidth = 640
+  const boxRight = sec4Right - pageNumWidth - 36
+  const boxWidth = 720
   const boxLeft = boxRight - boxWidth
   const boxTop = footerY + 24
-  const boxHeight = 78
+  const boxHeight = 88
 
-  // Box filled background (white) + thin border
-  ctx.fillStyle = '#4B5563'
-  ctx.fillStyle = '#374151'
-  // In the reference, the box is dark grey/anthracite (#4B5563) with white text:
-  // "© CORTEPLAN – Uso restrito e protegido pela Lei de Direitos Autorais nº 9.610/98."
-  // "Solicite autorização para reprodução ou adaptação."
-  ctx.fillStyle = '#3F444A'
+  // Box background
+  ctx.fillStyle = '#3A3A3A'
   ctx.fillRect(boxLeft, boxTop, boxWidth, boxHeight)
 
   // Box text inside - 2 lines, small white text
   ctx.textAlign = 'left'
   ctx.fillStyle = '#FFFFFF'
-  ctx.font = '500 14px Inter, sans-serif'
+  ctx.font = '500 15px Inter, sans-serif'
   ctx.letterSpacing = '0px'
-  ctx.fillText(COPYRIGHT_LINE_1, boxLeft + 18, boxTop + 33)
-  ctx.fillText(COPYRIGHT_LINE_2, boxLeft + 18, boxTop + 58)
+  ctx.fillText(COPYRIGHT_LINE_1, boxLeft + 20, boxTop + 36)
+  ctx.fillText(COPYRIGHT_LINE_2, boxLeft + 20, boxTop + 64)
 
   ctx.restore()
 }
@@ -319,8 +339,16 @@ export async function renderCoverPageCanvas(canvas: HTMLCanvasElement): Promise<
   ctx.fillStyle = '#FFFFFF'
   ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT)
 
+  // Pre-load official logo
+  let logoImg: HTMLImageElement | null = null
+  try {
+    logoImg = await getOfficialLogoImage()
+  } catch (e) {
+    console.warn('Falha ao pré-carregar logo oficial para capa do PDF:', e)
+  }
+
   // Big logo in center
-  drawCoverLogoCanvas(ctx, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2)
+  drawCoverLogoCanvas(ctx, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2, logoImg)
 }
 
 /**
@@ -340,6 +368,14 @@ export async function renderImagePageCanvas(
   // White background
   ctx.fillStyle = '#FFFFFF'
   ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT)
+
+  // Pre-load official logo
+  let logoImg: HTMLImageElement | null = null
+  try {
+    logoImg = await getOfficialLogoImage()
+  } catch (e) {
+    console.warn('Falha ao pré-carregar logo oficial para rodapé do PDF:', e)
+  }
 
   // Top address bar
   drawAddressBarCanvas(ctx, CANVAS_WIDTH)
@@ -388,7 +424,7 @@ export async function renderImagePageCanvas(
 
   // Draw Standard Footer
   const footerY = CANVAS_HEIGHT - footerHeight
-  drawFooterCanvas(ctx, data, pageNumber, CANVAS_WIDTH, footerY, footerHeight)
+  drawFooterCanvas(ctx, data, pageNumber, CANVAS_WIDTH, footerY, footerHeight, logoImg)
 }
 
 /**

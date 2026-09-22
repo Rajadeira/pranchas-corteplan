@@ -37,9 +37,9 @@ export const PageThumbnail: React.FC<PageThumbnailProps> = ({
       {/* 297 x 210 aspect ratio container (approx 1.414:1) */}
       <div className="relative w-full aspect-[297/210] bg-white p-2 sm:p-2.5 flex flex-col justify-between overflow-hidden select-none">
         {type === 'cover' ? (
-          // Capa: apenas o logo da Corteplan centralizado
-          <div className="w-full h-full flex flex-col items-center justify-center">
-            <div className="scale-75 sm:scale-90 md:scale-100 transform origin-center">
+          // Capa: apenas o logo oficial da Corteplan centralizado
+          <div className="w-full h-full flex flex-col items-center justify-center p-4">
+            <div className="w-40 sm:w-48 md:w-56 flex items-center justify-center">
               <CorteplanLogo variant="cover" />
             </div>
           </div>
@@ -68,55 +68,67 @@ export const PageThumbnail: React.FC<PageThumbnailProps> = ({
             </div>
 
             {/* Standard Footer faithful to Corteplan reference board */}
-            <div className="w-full pt-1 border-t border-[#DCDCDC] flex items-center justify-between text-[4.5px] sm:text-[5.5px] text-[#1F1F1F] gap-1">
-              {/* Block 1: Logo */}
-              <div className="shrink-0 scale-[0.65] sm:scale-75 origin-left">
-                <CorteplanLogo variant="footer" />
+            <div className="w-full pt-1.5 border-t border-[#DCDCDC] flex items-center justify-between text-[4.5px] sm:text-[5.5px] text-[#1F1F1F] gap-1 sm:gap-2">
+              {/* Block 1: Logo Oficial (proporção aprox. 2:1) */}
+              <div className="shrink-0 flex items-center w-[16%] max-w-[62px]">
+                <CorteplanLogo variant="footer" className="w-full max-h-5 object-contain" />
               </div>
 
-              {/* Block 2: Orange bar + 3 lines */}
-              <div className="flex items-center gap-1 border-l-2 border-[#F2612A] pl-1 max-w-[26%] shrink-0">
-                <div className="flex flex-col leading-none truncate">
+              {/* Block 2: Orange vertical bar + 3 lines (CLIENTE:, MODELO:, DATA:) */}
+              <div className="flex items-stretch gap-1 sm:gap-1.5 border-l-2 border-[#E08A2E] pl-1 sm:pl-1.5 w-[25%] shrink-0">
+                <div className="flex flex-col justify-center leading-tight truncate py-0.5">
                   <span className="truncate">
-                    <span className="text-[#6B6B6B] font-semibold">CLIENTE: </span>
-                    <span className="font-medium text-[#1F1F1F]">{data.cliente || '-'}</span>
+                    <span className="text-[#6B6B6B] font-bold text-[4px] sm:text-[5px]">
+                      CLIENTE:{' '}
+                    </span>
+                    <span className="font-semibold text-[#1F1F1F]">{data.cliente || '-'}</span>
                   </span>
                   <span className="truncate mt-0.5">
-                    <span className="text-[#6B6B6B] font-semibold">MODELO: </span>
-                    <span className="font-medium text-[#1F1F1F]">{data.modelo || '-'}</span>
+                    <span className="text-[#6B6B6B] font-bold text-[4px] sm:text-[5px]">
+                      MODELO:{' '}
+                    </span>
+                    <span className="font-semibold text-[#1F1F1F]">{data.modelo || '-'}</span>
                   </span>
                   <span className="truncate mt-0.5">
-                    <span className="text-[#6B6B6B] font-semibold">DATA: </span>
-                    <span className="font-medium text-[#1F1F1F]">
+                    <span className="text-[#6B6B6B] font-bold text-[4px] sm:text-[5px]">
+                      DATA:{' '}
+                    </span>
+                    <span className="font-semibold text-[#1F1F1F]">
                       {formatDisplayDate(data.data) || '-'}
                     </span>
                   </span>
                 </div>
               </div>
 
-              {/* Block 3: 3 lines */}
-              <div className="flex flex-col leading-none max-w-[26%] shrink-0 truncate">
+              {/* Block 3: 3 lines (VENDEDOR:, PROJETO:, RESPONSÁVEL:) */}
+              <div className="flex flex-col justify-center leading-tight w-[27%] shrink-0 truncate py-0.5">
                 <span className="truncate">
-                  <span className="text-[#6B6B6B] font-semibold">VENDEDOR: </span>
-                  <span className="font-medium text-[#1F1F1F]">{data.vendedor || '-'}</span>
+                  <span className="text-[#6B6B6B] font-bold text-[4px] sm:text-[5px]">
+                    VENDEDOR:{' '}
+                  </span>
+                  <span className="font-semibold text-[#1F1F1F]">{data.vendedor || '-'}</span>
                 </span>
                 <span className="truncate mt-0.5">
-                  <span className="text-[#6B6B6B] font-semibold">PROJETO: </span>
-                  <span className="font-medium text-[#1F1F1F]">{data.projeto || '-'}</span>
+                  <span className="text-[#6B6B6B] font-bold text-[4px] sm:text-[5px]">
+                    PROJETO:{' '}
+                  </span>
+                  <span className="font-semibold text-[#1F1F1F]">{data.projeto || '-'}</span>
                 </span>
                 <span className="truncate mt-0.5">
-                  <span className="text-[#6B6B6B] font-semibold">RESPONSÁVEL: </span>
-                  <span className="font-medium text-[#1F1F1F]">{data.responsavel || '-'}</span>
+                  <span className="text-[#6B6B6B] font-bold text-[4px] sm:text-[5px]">
+                    RESPONSÁVEL:{' '}
+                  </span>
+                  <span className="font-semibold text-[#1F1F1F]">{data.responsavel || '-'}</span>
                 </span>
               </div>
 
-              {/* Block 4: Copyright small box + Big Page Number */}
-              <div className="flex items-center gap-1 shrink-0 ml-auto">
-                <div className="hidden sm:block bg-[#3F444A] text-white px-1 py-0.5 text-[4px] leading-tight rounded-[1px] max-w-[90px]">
-                  <p className="truncate">{COPYRIGHT_LINE_1}</p>
-                  <p className="truncate">{COPYRIGHT_LINE_2}</p>
+              {/* Block 4: Copyright box + Big Page Number */}
+              <div className="flex items-center gap-1 sm:gap-2 shrink-0 ml-auto">
+                <div className="hidden xs:block sm:block bg-[#3A3A3A] text-white px-1 sm:px-1.5 py-0.5 text-[3.8px] sm:text-[4.5px] leading-tight rounded-[1px] max-w-[85px] sm:max-w-[110px]">
+                  <p className="truncate font-normal">{COPYRIGHT_LINE_1}</p>
+                  <p className="truncate font-normal">{COPYRIGHT_LINE_2}</p>
                 </div>
-                <div className="text-[12px] sm:text-[14px] font-black tracking-tight text-[#6B6B6B] leading-none min-w-[18px] text-right">
+                <div className="text-[13px] sm:text-[16px] font-black tracking-tight text-[#4A4A4A] leading-none min-w-[18px] text-right font-sans">
                   {pageNumStr}
                 </div>
               </div>
