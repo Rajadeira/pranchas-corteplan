@@ -18,10 +18,13 @@ export interface BoardData {
 }
 
 export const ADDRESS_TEXT =
-  'Corteplan Móveis Especiais, Rua Friedrich Bischof, número oitenta, Polo Industrial, Sertãozinho, Mauá'
+  'CORTEPLAN MÓVEIS ESPECIAIS - R. Friedrich Bischof, nº 80 - Polo Industrial - Sertãozinho - Mauá'
 
-export const COPYRIGHT_TEXT =
-  'Este documento e as informações nele contidas são de propriedade exclusiva da Corteplan Móveis Especiais. Proibida a reprodução parcial ou total sem autorização prévia por escrito.'
+export const COPYRIGHT_LINE_1 =
+  '© CORTEPLAN – Uso restrito e protegido pela Lei de Direitos Autorais nº 9.610/98.'
+export const COPYRIGHT_LINE_2 = 'Solicite autorização para reprodução ou adaptação.'
+
+export const COPYRIGHT_TEXT = `${COPYRIGHT_LINE_1}\n${COPYRIGHT_LINE_2}`
 
 /**
  * Loads an image into an HTMLImageElement
@@ -163,11 +166,11 @@ export function drawFooterCanvas(
   pageNumber: number,
   totalWidth: number,
   footerY: number,
-  footerHeight: number,
+  _footerHeight: number,
 ) {
   ctx.save()
 
-  // Top dividing hairline
+  // Top dividing hairline matching the reference bounding box width
   ctx.strokeStyle = '#DCDCDC'
   ctx.lineWidth = 2
   ctx.beginPath()
@@ -175,120 +178,118 @@ export function drawFooterCanvas(
   ctx.lineTo(totalWidth - 80, footerY)
   ctx.stroke()
 
-  // Section 1: Logo Corteplan
+  // Block 1: Logo Corteplan
   const logoX = 90
   const logoY = footerY + 36
   drawLogoCanvas(ctx, logoX, logoY, 1.25)
 
-  // Section 2: Orange vertical bar + 3 lines (Cliente, Modelo, Data)
-  const sec2X = 850
-  const sec2Y = footerY + 28
-  const barH = 80
+  // Block 2: Orange vertical bar + 3 lines (CLIENTE:, MODELO:, DATA:)
+  const sec2X = 640
+  const sec2Y = footerY + 25
+  const barH = 78
 
   // Orange vertical bar
   ctx.fillStyle = '#F2612A'
-  ctx.fillRect(sec2X, sec2Y, 7, barH)
+  ctx.fillRect(sec2X, sec2Y, 6, barH)
 
-  const textLeft2 = sec2X + 24
-  ctx.font = '500 21px Inter, sans-serif'
+  const textLeft2 = sec2X + 22
   ctx.letterSpacing = '0px'
+  ctx.textAlign = 'left'
 
-  // Line 1: Cliente
+  // Line 1: CLIENTE:
+  ctx.font = '600 19px Inter, sans-serif'
   ctx.fillStyle = '#6B6B6B'
-  ctx.fillText('Cliente: ', textLeft2, sec2Y + 20)
-  const cliW = ctx.measureText('Cliente: ').width
+  ctx.fillText('CLIENTE: ', textLeft2, sec2Y + 20)
+  const cliLabelW = ctx.measureText('CLIENTE: ').width
+  ctx.font = '500 19px Inter, sans-serif'
   ctx.fillStyle = '#1F1F1F'
-  ctx.font = '700 21px Inter, sans-serif'
-  ctx.fillText(data.cliente || '-', textLeft2 + cliW, sec2Y + 20)
+  ctx.fillText(data.cliente || '-', textLeft2 + cliLabelW, sec2Y + 20)
 
-  // Line 2: Modelo
-  ctx.font = '500 21px Inter, sans-serif'
+  // Line 2: MODELO:
+  ctx.font = '600 19px Inter, sans-serif'
   ctx.fillStyle = '#6B6B6B'
-  ctx.fillText('Modelo: ', textLeft2, sec2Y + 48)
-  const modW = ctx.measureText('Modelo: ').width
+  ctx.fillText('MODELO: ', textLeft2, sec2Y + 48)
+  const modLabelW = ctx.measureText('MODELO: ').width
+  ctx.font = '500 19px Inter, sans-serif'
   ctx.fillStyle = '#1F1F1F'
-  ctx.font = '700 21px Inter, sans-serif'
-  ctx.fillText(data.modelo || '-', textLeft2 + modW, sec2Y + 48)
+  ctx.fillText(data.modelo || '-', textLeft2 + modLabelW, sec2Y + 48)
 
-  // Line 3: Data
-  ctx.font = '500 21px Inter, sans-serif'
+  // Line 3: DATA:
+  ctx.font = '600 19px Inter, sans-serif'
   ctx.fillStyle = '#6B6B6B'
-  ctx.fillText('Data: ', textLeft2, sec2Y + 76)
-  const datW = ctx.measureText('Data: ').width
+  ctx.fillText('DATA: ', textLeft2, sec2Y + 74)
+  const datLabelW = ctx.measureText('DATA: ').width
+  ctx.font = '500 19px Inter, sans-serif'
   ctx.fillStyle = '#1F1F1F'
-  ctx.font = '700 21px Inter, sans-serif'
-  ctx.fillText(formatDisplayDate(data.data) || '-', textLeft2 + datW, sec2Y + 76)
+  ctx.fillText(formatDisplayDate(data.data) || '-', textLeft2 + datLabelW, sec2Y + 74)
 
-  // Section 3: 3 lines (Vendedor, Projeto, Responsável)
-  const sec3X = 1600
+  // Block 3: 3 lines (VENDEDOR:, PROJETO:, RESPONSÁVEL:)
+  const sec3X = 1450
   const sec3Y = sec2Y
 
-  // Line 1: Vendedor
-  ctx.font = '500 21px Inter, sans-serif'
+  // Line 1: VENDEDOR:
+  ctx.font = '600 19px Inter, sans-serif'
   ctx.fillStyle = '#6B6B6B'
-  ctx.fillText('Vendedor: ', sec3X, sec3Y + 20)
-  const vendW = ctx.measureText('Vendedor: ').width
+  ctx.fillText('VENDEDOR: ', sec3X, sec3Y + 20)
+  const vendLabelW = ctx.measureText('VENDEDOR: ').width
+  ctx.font = '500 19px Inter, sans-serif'
   ctx.fillStyle = '#1F1F1F'
-  ctx.font = '700 21px Inter, sans-serif'
-  ctx.fillText(data.vendedor || '-', sec3X + vendW, sec3Y + 20)
+  ctx.fillText(data.vendedor || '-', sec3X + vendLabelW, sec3Y + 20)
 
-  // Line 2: Projeto
-  ctx.font = '500 21px Inter, sans-serif'
+  // Line 2: PROJETO:
+  ctx.font = '600 19px Inter, sans-serif'
   ctx.fillStyle = '#6B6B6B'
-  ctx.fillText('Projeto: ', sec3X, sec3Y + 48)
-  const projW = ctx.measureText('Projeto: ').width
+  ctx.fillText('PROJETO: ', sec3X, sec3Y + 48)
+  const projLabelW = ctx.measureText('PROJETO: ').width
+  ctx.font = '500 19px Inter, sans-serif'
   ctx.fillStyle = '#1F1F1F'
-  ctx.font = '700 21px Inter, sans-serif'
-  ctx.fillText(data.projeto || '-', sec3X + projW, sec3Y + 48)
+  ctx.fillText(data.projeto || '-', sec3X + projLabelW, sec3Y + 48)
 
-  // Line 3: Responsável
-  ctx.font = '500 21px Inter, sans-serif'
+  // Line 3: RESPONSÁVEL:
+  ctx.font = '600 19px Inter, sans-serif'
   ctx.fillStyle = '#6B6B6B'
-  ctx.fillText('Responsável: ', sec3X, sec3Y + 76)
-  const respW = ctx.measureText('Responsável: ').width
+  ctx.fillText('RESPONSÁVEL: ', sec3X, sec3Y + 74)
+  const respLabelW = ctx.measureText('RESPONSÁVEL: ').width
+  ctx.font = '500 19px Inter, sans-serif'
   ctx.fillStyle = '#1F1F1F'
-  ctx.font = '700 21px Inter, sans-serif'
-  ctx.fillText(data.responsavel || '-', sec3X + respW, sec3Y + 76)
+  ctx.fillText(data.responsavel || '-', sec3X + respLabelW, sec3Y + 74)
 
-  // Section 4: Copyright box + Big Page Number
+  // Block 4: Copyright box + Big Page Number
+  // Page number string: 01, 02, 03...
   const pageNumStr = pageNumber < 10 ? `0${pageNumber}` : `${pageNumber}`
   const rightMargin = totalWidth - 80
   const sec4Right = rightMargin
 
-  // Draw Page Number at the rightmost
-  ctx.font = '900 68px Inter, sans-serif'
-  ctx.fillStyle = '#1F1F1F'
+  // Draw Page Number at right edge
+  ctx.font = '800 68px Inter, sans-serif'
+  ctx.fillStyle = '#6B6B6B'
   ctx.textAlign = 'right'
   ctx.fillText(pageNumStr, sec4Right, footerY + 84)
 
-  // Copyright box to the left of page number
+  // Copyright box with thin border (grey container with white background)
   const pageNumWidth = ctx.measureText(pageNumStr).width
-  const boxRight = sec4Right - pageNumWidth - 36
-  const boxWidth = 520
+  const boxRight = sec4Right - pageNumWidth - 42
+  const boxWidth = 640
   const boxLeft = boxRight - boxWidth
   const boxTop = footerY + 24
-  const boxHeight = 88
+  const boxHeight = 78
 
-  // Box border
-  ctx.strokeStyle = '#DCDCDC'
-  ctx.lineWidth = 1.5
-  ctx.strokeRect(boxLeft, boxTop, boxWidth, boxHeight)
+  // Box filled background (white) + thin border
+  ctx.fillStyle = '#4B5563'
+  ctx.fillStyle = '#374151'
+  // In the reference, the box is dark grey/anthracite (#4B5563) with white text:
+  // "© CORTEPLAN – Uso restrito e protegido pela Lei de Direitos Autorais nº 9.610/98."
+  // "Solicite autorização para reprodução ou adaptação."
+  ctx.fillStyle = '#3F444A'
+  ctx.fillRect(boxLeft, boxTop, boxWidth, boxHeight)
 
-  // Box text inside
+  // Box text inside - 2 lines, small white text
   ctx.textAlign = 'left'
-  ctx.fillStyle = '#8A8A8A'
-  ctx.font = '400 14px Inter, sans-serif'
+  ctx.fillStyle = '#FFFFFF'
+  ctx.font = '500 14px Inter, sans-serif'
   ctx.letterSpacing = '0px'
-
-  const lines = [
-    'Documento confidencial emitido por Corteplan Móveis Especiais.',
-    'Projetos protegidos pela legislação autoral e de propriedade',
-    'industrial vigente. Vedada reprodução total ou parcial sem anuência.',
-  ]
-
-  lines.forEach((l, idx) => {
-    ctx.fillText(l, boxLeft + 14, boxTop + 24 + idx * 22)
-  })
+  ctx.fillText(COPYRIGHT_LINE_1, boxLeft + 18, boxTop + 33)
+  ctx.fillText(COPYRIGHT_LINE_2, boxLeft + 18, boxTop + 58)
 
   ctx.restore()
 }
@@ -406,33 +407,33 @@ export async function generatePranchaPdf(
     imageUrl?: string | null
   }> = []
 
-  // Page 1: Capa
+  // Page 1: Capa (Capa não tem número nem rodapé)
   pagesToGenerate.push({
     type: 'cover',
-    pageNumber: 1,
+    pageNumber: 0,
     title: 'Capa',
   })
 
-  // Page 2: Render de estúdio
+  // Page 2: Render de estúdio (Página 01)
   pagesToGenerate.push({
     type: 'render',
-    pageNumber: 2,
+    pageNumber: 1,
     title: 'Render de Estúdio',
     imageUrl: data.renderUrl,
   })
 
-  // Page 3: Ambiente (if enabled)
+  // Page 3: Ambiente (se habilitada -> Página 02)
   if (data.includeAmbiente) {
     pagesToGenerate.push({
       type: 'ambiente',
-      pageNumber: 3,
+      pageNumber: 2,
       title: 'Aplicação em Ambiente',
       imageUrl: data.ambienteUrl,
     })
   }
 
-  // Final Page: Desenho técnico
-  const technicalPageNumber = data.includeAmbiente ? 4 : 3
+  // Final Page: Desenho técnico (03 se ambiente ativo, 02 se desativada)
+  const technicalPageNumber = data.includeAmbiente ? 3 : 2
   pagesToGenerate.push({
     type: 'desenho',
     pageNumber: technicalPageNumber,

@@ -26,9 +26,9 @@ export default function Index() {
   const [cliente, setCliente] = useState('')
   const [modelo, setModelo] = useState('')
   const [data, setData] = useState(() => new Date().toISOString().split('T')[0])
-  const [vendedor, setVendedor] = useState('Equipe Corteplan')
-  const [projeto, setProjeto] = useState('Projeto de Móveis Sob Medida')
-  const [responsavel, setResponsavel] = useState('Departamento Técnico')
+  const [vendedor, setVendedor] = useState('Gustavo Tibério')
+  const [projeto, setProjeto] = useState('Corteplan Concept. AI Rendered.')
+  const [responsavel, setResponsavel] = useState('Gustavo Tibério')
   const [includeAmbiente, setIncludeAmbiente] = useState(true)
 
   // Files & Previews
@@ -86,9 +86,9 @@ export default function Index() {
       setCliente(p.cliente || '')
       setModelo(p.modelo || '')
       setData(p.data || new Date().toISOString().split('T')[0])
-      setVendedor(p.vendedor || 'Equipe Corteplan')
-      setProjeto(p.projeto || 'Projeto de Móveis Sob Medida')
-      setResponsavel(p.responsavel || 'Departamento Técnico')
+      setVendedor(p.vendedor || 'Gustavo Tibério')
+      setProjeto(p.projeto || 'Corteplan Concept. AI Rendered.')
+      setResponsavel(p.responsavel || 'Gustavo Tibério')
       setIncludeAmbiente(p.include_ambiente !== false)
 
       if (p.render_imagem) {
@@ -442,7 +442,7 @@ export default function Index() {
                 type="text"
                 value={vendedor}
                 onChange={(e) => setVendedor(e.target.value)}
-                placeholder="Equipe Corteplan"
+                placeholder="Gustavo Tibério"
                 className="h-10 text-sm focus-visible:ring-[#F2612A]/40"
               />
             </div>
@@ -460,7 +460,7 @@ export default function Index() {
                 type="text"
                 value={projeto}
                 onChange={(e) => setProjeto(e.target.value)}
-                placeholder="Projeto de Móveis Sob Medida"
+                placeholder="Corteplan Concept. AI Rendered."
                 className="h-10 text-sm focus-visible:ring-[#F2612A]/40"
               />
             </div>
@@ -478,7 +478,7 @@ export default function Index() {
                 type="text"
                 value={responsavel}
                 onChange={(e) => setResponsavel(e.target.value)}
-                placeholder="Departamento Técnico"
+                placeholder="Gustavo Tibério"
                 className="h-10 text-sm focus-visible:ring-[#F2612A]/40"
               />
             </div>
@@ -530,7 +530,7 @@ export default function Index() {
             <ImageUploadZone
               label="Render de estúdio"
               required
-              helperText="Página 02 (Obrigatória)"
+              helperText="Página 01 (Obrigatória)"
               file={renderFile}
               previewUrl={renderPreview}
               error={errors.render}
@@ -543,7 +543,7 @@ export default function Index() {
               <div className="transition-all animate-fade-in">
                 <ImageUploadZone
                   label="Aplicação em ambiente"
-                  helperText="Página 03 (Opcional)"
+                  helperText="Página 02 (Opcional)"
                   file={ambienteFile}
                   previewUrl={ambientePreview}
                   onFileSelect={handleAmbienteSelect}
@@ -556,7 +556,7 @@ export default function Index() {
             <ImageUploadZone
               label="Desenho técnico"
               required
-              helperText={includeAmbiente ? 'Página 04 (Obrigatória)' : 'Página 03 (Obrigatória)'}
+              helperText={includeAmbiente ? 'Página 03 (Obrigatória)' : 'Página 02 (Obrigatória)'}
               file={desenhoFile}
               previewUrl={desenhoPreview}
               error={errors.desenho}
@@ -583,46 +583,46 @@ export default function Index() {
 
         {/* Responsive Grid of Thumbnails */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-2">
-          {/* Page 1: Capa */}
+          {/* Page 1: Capa (sem número no rodapé) */}
           <PageThumbnail
-            pageNumber={1}
+            pageNumber={0}
             type="cover"
             title="Capa"
             data={boardData}
-            onClick={() => openModal('cover', 1, 'Capa')}
+            onClick={() => openModal('cover', 0, 'Capa')}
           />
 
-          {/* Page 2: Render de estúdio */}
+          {/* Page 2: Render de estúdio (Página 01) */}
           <PageThumbnail
-            pageNumber={2}
+            pageNumber={1}
             type="render"
             title="Render de Estúdio"
             data={boardData}
             imageUrl={renderPreview}
-            onClick={() => openModal('render', 2, 'Render de Estúdio', renderPreview)}
+            onClick={() => openModal('render', 1, 'Render de Estúdio', renderPreview)}
           />
 
-          {/* Page 3: Ambiente (se ativo) */}
+          {/* Page 3: Ambiente (se ativo -> Página 02) */}
           {includeAmbiente && (
             <PageThumbnail
-              pageNumber={3}
+              pageNumber={2}
               type="ambiente"
               title="Aplicação em Ambiente"
               data={boardData}
               imageUrl={ambientePreview}
-              onClick={() => openModal('ambiente', 3, 'Aplicação em Ambiente', ambientePreview)}
+              onClick={() => openModal('ambiente', 2, 'Aplicação em Ambiente', ambientePreview)}
             />
           )}
 
-          {/* Final Page: Desenho técnico (03 ou 04) */}
+          {/* Final Page: Desenho técnico (Página 03 se ambiente ativo, Página 02 se desativada) */}
           <PageThumbnail
-            pageNumber={includeAmbiente ? 4 : 3}
+            pageNumber={includeAmbiente ? 3 : 2}
             type="desenho"
             title="Desenho Técnico"
             data={boardData}
             imageUrl={desenhoPreview}
             onClick={() =>
-              openModal('desenho', includeAmbiente ? 4 : 3, 'Desenho Técnico', desenhoPreview)
+              openModal('desenho', includeAmbiente ? 3 : 2, 'Desenho Técnico', desenhoPreview)
             }
           />
         </div>

@@ -1,6 +1,11 @@
 import React from 'react'
 import CorteplanLogo from '@/components/CorteplanLogo'
-import { formatDisplayDate, ADDRESS_TEXT, COPYRIGHT_TEXT } from '@/lib/pdf/generator'
+import {
+  formatDisplayDate,
+  ADDRESS_TEXT,
+  COPYRIGHT_LINE_1,
+  COPYRIGHT_LINE_2,
+} from '@/lib/pdf/generator'
 import type { BoardData } from '@/lib/pdf/generator'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 
@@ -23,7 +28,7 @@ export const PagePreviewModal: React.FC<PagePreviewModalProps> = ({
   data,
   imageUrl,
 }) => {
-  const pageNumStr = pageNumber < 10 ? `0${pageNumber}` : `${pageNumber}`
+  const pageNumStr = pageNumber > 0 ? (pageNumber < 10 ? `0${pageNumber}` : `${pageNumber}`) : ''
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -31,7 +36,9 @@ export const PagePreviewModal: React.FC<PagePreviewModalProps> = ({
         <DialogHeader className="mb-2">
           <DialogTitle className="text-base sm:text-lg font-bold text-[#1F1F1F] flex items-center justify-between">
             <span>
-              Pré-visualização: Página {pageNumStr} ({title})
+              {type === 'cover'
+                ? 'Pré-visualização: Capa'
+                : `Pré-visualização: Página ${pageNumStr} (${title})`}
             </span>
             <span className="text-xs font-normal text-[#6B6B6B]">A4 Paisagem (297×210mm)</span>
           </DialogTitle>
@@ -47,7 +54,7 @@ export const PagePreviewModal: React.FC<PagePreviewModalProps> = ({
             <>
               {/* Address Top */}
               <div className="w-full text-center py-1">
-                <span className="text-[9px] sm:text-[11px] text-[#8E8E8E] font-medium tracking-wide">
+                <span className="text-[8.5px] sm:text-[10.5px] text-[#8E8E8E] font-medium tracking-wide">
                   {ADDRESS_TEXT}
                 </span>
               </div>
@@ -64,53 +71,56 @@ export const PagePreviewModal: React.FC<PagePreviewModalProps> = ({
                 )}
               </div>
 
-              {/* Standard Footer */}
-              <div className="w-full pt-2.5 border-t border-[#DCDCDC] flex items-center justify-between text-[8px] sm:text-[10px] text-[#1F1F1F]">
+              {/* Standard Footer faithful to Corteplan reference board */}
+              <div className="w-full pt-2 border-t border-[#DCDCDC] flex items-center justify-between text-[7.5px] sm:text-[9.5px] text-[#1F1F1F] gap-2">
                 {/* Block 1: Logo */}
                 <div className="shrink-0">
                   <CorteplanLogo variant="footer" />
                 </div>
 
-                {/* Block 2: Orange Bar + 3 lines */}
-                <div className="flex items-center gap-2 border-l-4 border-[#F2612A] pl-2">
-                  <div className="flex flex-col leading-snug">
-                    <span>
-                      <strong className="text-[#6B6B6B] font-medium">Cliente: </strong>
-                      <span className="font-bold">{data.cliente || '-'}</span>
+                {/* Block 2: Orange Bar + 3 lines (CLIENTE:, MODELO:, DATA:) */}
+                <div className="flex items-center gap-2 border-l-[3px] border-[#F2612A] pl-2 shrink-0">
+                  <div className="flex flex-col leading-tight">
+                    <span className="truncate max-w-[150px] sm:max-w-[180px]">
+                      <span className="text-[#6B6B6B] font-semibold">CLIENTE: </span>
+                      <span className="text-[#1F1F1F] font-medium">{data.cliente || '-'}</span>
                     </span>
-                    <span>
-                      <strong className="text-[#6B6B6B] font-medium">Modelo: </strong>
-                      <span className="font-bold">{data.modelo || '-'}</span>
+                    <span className="truncate max-w-[150px] sm:max-w-[180px]">
+                      <span className="text-[#6B6B6B] font-semibold">MODELO: </span>
+                      <span className="text-[#1F1F1F] font-medium">{data.modelo || '-'}</span>
                     </span>
-                    <span>
-                      <strong className="text-[#6B6B6B] font-medium">Data: </strong>
-                      <span className="font-bold">{formatDisplayDate(data.data) || '-'}</span>
+                    <span className="truncate max-w-[150px] sm:max-w-[180px]">
+                      <span className="text-[#6B6B6B] font-semibold">DATA: </span>
+                      <span className="text-[#1F1F1F] font-medium">
+                        {formatDisplayDate(data.data) || '-'}
+                      </span>
                     </span>
                   </div>
                 </div>
 
-                {/* Block 3: 3 lines */}
-                <div className="flex flex-col leading-snug">
-                  <span>
-                    <strong className="text-[#6B6B6B] font-medium">Vendedor: </strong>
-                    <span className="font-bold">{data.vendedor || '-'}</span>
+                {/* Block 3: 3 lines (VENDEDOR:, PROJETO:, RESPONSÁVEL:) */}
+                <div className="flex flex-col leading-tight shrink-0">
+                  <span className="truncate max-w-[160px] sm:max-w-[210px]">
+                    <span className="text-[#6B6B6B] font-semibold">VENDEDOR: </span>
+                    <span className="text-[#1F1F1F] font-medium">{data.vendedor || '-'}</span>
                   </span>
-                  <span>
-                    <strong className="text-[#6B6B6B] font-medium">Projeto: </strong>
-                    <span className="font-bold">{data.projeto || '-'}</span>
+                  <span className="truncate max-w-[160px] sm:max-w-[210px]">
+                    <span className="text-[#6B6B6B] font-semibold">PROJETO: </span>
+                    <span className="text-[#1F1F1F] font-medium">{data.projeto || '-'}</span>
                   </span>
-                  <span>
-                    <strong className="text-[#6B6B6B] font-medium">Responsável: </strong>
-                    <span className="font-bold">{data.responsavel || '-'}</span>
+                  <span className="truncate max-w-[160px] sm:max-w-[210px]">
+                    <span className="text-[#6B6B6B] font-semibold">RESPONSÁVEL: </span>
+                    <span className="text-[#1F1F1F] font-medium">{data.responsavel || '-'}</span>
                   </span>
                 </div>
 
                 {/* Block 4: Copyright box + Big Page Number */}
-                <div className="flex items-center gap-3">
-                  <div className="border border-[#DCDCDC] p-1 text-[6.5px] sm:text-[7.5px] leading-tight text-[#8A8A8A] max-w-[170px]">
-                    {COPYRIGHT_TEXT}
+                <div className="flex items-center gap-2.5 shrink-0 ml-auto">
+                  <div className="bg-[#3F444A] text-white px-2 py-1.5 rounded-[2px] text-[6px] sm:text-[7.5px] leading-tight max-w-[190px] sm:max-w-[240px]">
+                    <p className="font-normal">{COPYRIGHT_LINE_1}</p>
+                    <p className="font-normal">{COPYRIGHT_LINE_2}</p>
                   </div>
-                  <div className="text-2xl sm:text-3xl font-black text-[#1F1F1F] tracking-tight">
+                  <div className="text-xl sm:text-2xl font-black text-[#6B6B6B] tracking-tight shrink-0 min-w-[28px] text-right">
                     {pageNumStr}
                   </div>
                 </div>
