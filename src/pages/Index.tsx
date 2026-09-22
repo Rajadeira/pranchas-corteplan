@@ -9,11 +9,30 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
-import { generatePranchaPdf, downloadPdf } from '@/lib/pdf/generator'
+import { generatePranchaPdf, downloadPdf, formatDisplayDate } from '@/lib/pdf/generator'
 import type { BoardData } from '@/lib/pdf/generator'
 import { saveProject, getProjectById, getProjectFileUrl } from '@/services/projects'
 import type { ProjectRecord } from '@/services/projects'
-import { Download, Save, Check, AlertCircle, Loader2, FileCheck2, Sparkles } from 'lucide-react'
+import {
+  Download,
+  Save,
+  Check,
+  AlertCircle,
+  Loader2,
+  FileCheck2,
+  Sparkles,
+  History,
+  Plus,
+} from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { getProjectVersions } from '@/services/projects'
 
 export default function Index() {
   const { user } = useAuth()
@@ -22,7 +41,9 @@ export default function Index() {
   const navigate = useNavigate()
 
   // Form states
+  const [loadedProject, setLoadedProject] = useState<ProjectRecord | null>(null)
   const [projectId, setProjectId] = useState<string | undefined>(undefined)
+  const [currentVersion, setCurrentVersion] = useState<number>(1)
   const [cliente, setCliente] = useState('')
   const [modelo, setModelo] = useState('')
   const [data, setData] = useState(() => new Date().toISOString().split('T')[0])
@@ -34,12 +55,25 @@ export default function Index() {
   // Files & Previews
   const [renderFile, setRenderFile] = useState<File | null>(null)
   const [renderPreview, setRenderPreview] = useState<string | null>(null)
+  const [existingRenderFilename, setExistingRenderFilename] = useState<string | undefined>(
+    undefined,
+  )
 
   const [ambienteFile, setAmbienteFile] = useState<File | null>(null)
   const [ambientePreview, setAmbientePreview] = useState<string | null>(null)
+  const [existingAmbienteFilename, setExistingAmbienteFilename] = useState<string | undefined>(
+    undefined,
+  )
 
   const [desenhoFile, setDesenhoFile] = useState<File | null>(null)
   const [desenhoPreview, setDesenhoPreview] = useState<string | null>(null)
+  const [existingDesenhoFilename, setExistingDesenhoFilename] = useState<string | undefined>(
+    undefined,
+  )
+
+  // Versioning state
+  const [lineageVersions, setLineageVersions] = useState<ProjectRecord[]>([])
+  const [isVersionsModalOpen, setIsVersionsModalOpen] = useState(false)
 
   // Validation errors
   const [errors, setErrors] = useState<{
@@ -82,7 +116,9 @@ export default function Index() {
     setIsLoadingProject(true)
     try {
       const p = await getProjectById(id)
+      setLoadedProject(p)
       setProjectId(p.id)
+      setCurrentVersion(p.version || 1)
       setCliente(p.cliente || '')
       setModelo(p.modelo || '')
       setData(p.data || new Date().toISOString().split('T')[0])
@@ -91,19 +127,47 @@ export default function Index() {
       setResponsavel(p.responsavel || 'Gustavo Tibério')
       setIncludeAmbiente(p.include_ambiente !== false)
 
+      // Reset new file uploads
+      setRenderFile(null)
+      setAmbienteFile(null)
+      setDesenhoFile(null)
+
       if (p.render_imagem) {
+        setExistingRenderFilename(p.render_imagem)
         setRenderPreview(getProjectFileUrl(p, p.render_imagem))
-      }
-      if (p.ambiente_imagem) {
-        setAmbientePreview(getProjectFileUrl(p, p.ambiente_imagem))
-      }
-      if (p.desenho_imagem) {
-        setDesenhoPreview(getProjectFileUrl(p, p.desenho_imagem))
+      } else {
+        setExistingRenderFilename(undefined)
+        setRenderPreview(null)
       }
 
+      if (p.ambiente_imagem) {
+        setExistingAmbienteFilename(p.ambiente_imagem)
+        setAmbientePreview(getProjectFileUrl(p, p.ambiente_imagem))
+      } else {
+        setExistingAmbienteFilename(undefined)
+        setAmbientePreview(null)
+      }
+
+      if (p.desenho_imagem) {
+        setExistingDesenhoFilename(p.desenho_imagem)
+        setDesenhoPreview(getProjectFileUrl(p, p.desenho_imagem))
+      } else {
+        setExistingDesenhoFilename(undefined)
+        setDesenhoPreview(null)
+      }
+
+      // Fetch versions in background
+      try {
+        const vers = await getProjectVersions(p)
+        setLineageVersions(vers)
+      } catch (e) {
+        console.warn('Erro ao carregar versões da prancha:', e)
+      }
+
+      const vDisplay = `v${p.version || 1}`
       toast({
-        title: 'Projeto carregado',
-        description: `Os dados do projeto "${p.cliente} - ${p.modelo}" foram preenchidos no formulário.`,
+        title: `Projeto carregado (${vDisplay})`,
+        description: `Os dados do projeto "${p.cliente} — ${vDisplay}" foram preenchidos no formulário.`,
       })
     } catch {
       toast({
@@ -116,9 +180,38 @@ export default function Index() {
     }
   }
 
+  const handleStartNewBlank = () => {
+    setLoadedProject(null)
+    setProjectId(undefined)
+    setCurrentVersion(1)
+    setCliente('')
+    setModelo('')
+    setData(new Date().toISOString().split('T')[0])
+    setVendedor('Gustavo Tibério')
+    setProjeto('Corteplan Concept. AI Rendered.')
+    setResponsavel('Gustavo Tibério')
+    setIncludeAmbiente(true)
+    setRenderFile(null)
+    setRenderPreview(null)
+    setExistingRenderFilename(undefined)
+    setAmbienteFile(null)
+    setAmbientePreview(null)
+    setExistingAmbienteFilename(undefined)
+    setDesenhoFile(null)
+    setDesenhoPreview(null)
+    setExistingDesenhoFilename(undefined)
+    setLineageVersions([])
+    navigate('/', { replace: true })
+    toast({
+      title: 'Nova prancha iniciada',
+      description: 'O formulário foi resetado para uma nova prancha em branco (v1).',
+    })
+  }
+
   // Handlers for image uploads
   const handleRenderSelect = (file: File) => {
     setRenderFile(file)
+    setExistingRenderFilename(undefined)
     const url = URL.createObjectURL(file)
     setRenderPreview(url)
     if (errors.render) {
@@ -128,22 +221,26 @@ export default function Index() {
 
   const handleRenderRemove = () => {
     setRenderFile(null)
+    setExistingRenderFilename(undefined)
     setRenderPreview(null)
   }
 
   const handleAmbienteSelect = (file: File) => {
     setAmbienteFile(file)
+    setExistingAmbienteFilename(undefined)
     const url = URL.createObjectURL(file)
     setAmbientePreview(url)
   }
 
   const handleAmbienteRemove = () => {
     setAmbienteFile(null)
+    setExistingAmbienteFilename(undefined)
     setAmbientePreview(null)
   }
 
   const handleDesenhoSelect = (file: File) => {
     setDesenhoFile(file)
+    setExistingDesenhoFilename(undefined)
     const url = URL.createObjectURL(file)
     setDesenhoPreview(url)
     if (errors.desenho) {
@@ -153,6 +250,7 @@ export default function Index() {
 
   const handleDesenhoRemove = () => {
     setDesenhoFile(null)
+    setExistingDesenhoFilename(undefined)
     setDesenhoPreview(null)
   }
 
@@ -206,7 +304,8 @@ export default function Index() {
 
       const safeCliente = cliente ? cliente.replace(/[^a-zA-Z0-9_-]/g, '_') : 'Cliente'
       const safeModelo = modelo ? modelo.replace(/[^a-zA-Z0-9_-]/g, '_') : 'Projeto'
-      const filename = `Prancha_Corteplan_${safeCliente}_${safeModelo}.pdf`
+      const vStr = `v${currentVersion}`
+      const filename = `Prancha_Corteplan_${safeCliente}_${safeModelo}_${vStr}.pdf`
 
       downloadPdf(pdfBlob, filename)
 
@@ -227,7 +326,7 @@ export default function Index() {
     }
   }
 
-  // Save Project
+  // Save Project (creates next revision version if existing project, or v1 if new)
   const handleSaveProject = async () => {
     if (!user) {
       toast({
@@ -250,7 +349,7 @@ export default function Index() {
 
     setIsSaving(true)
     try {
-      const saved = await saveProject(
+      const { record: saved, isNewVersion } = await saveProject(
         {
           id: projectId,
           cliente,
@@ -263,14 +362,42 @@ export default function Index() {
           render_file: renderFile,
           ambiente_file: ambienteFile,
           desenho_file: desenhoFile,
+          existing_render_imagem: existingRenderFilename,
+          existing_ambiente_imagem: existingAmbienteFilename,
+          existing_desenho_imagem: existingDesenhoFilename,
         },
         user.id,
       )
 
+      setLoadedProject(saved)
       setProjectId(saved.id)
+      setCurrentVersion(saved.version || 1)
+
+      // Reset new file uploads state since they are now part of the saved record
+      setRenderFile(null)
+      setAmbienteFile(null)
+      setDesenhoFile(null)
+      if (saved.render_imagem) setExistingRenderFilename(saved.render_imagem)
+      if (saved.ambiente_imagem) setExistingAmbienteFilename(saved.ambiente_imagem)
+      if (saved.desenho_imagem) setExistingDesenhoFilename(saved.desenho_imagem)
+
+      // Refresh lineage list
+      try {
+        const vers = await getProjectVersions(saved)
+        setLineageVersions(vers)
+      } catch (e) {
+        console.warn('Erro ao atualizar lista de versões:', e)
+      }
+
+      // Update URL query param to newly created record id
+      navigate(`/?edit=${saved.id}`, { replace: true })
+
+      const vDisplay = `v${saved.version || 1}`
       toast({
-        title: 'Projeto salvo com sucesso',
-        description: `O projeto "${saved.cliente}" foi registrado no sistema.`,
+        title: isNewVersion ? `Nova versão salva: ${vDisplay}` : `Projeto salvo (${vDisplay})`,
+        description: isNewVersion
+          ? `Criada a versão "${saved.cliente} — ${vDisplay}". As versões anteriores foram preservadas.`
+          : `O projeto "${saved.cliente} — ${vDisplay}" foi registrado no sistema com sucesso.`,
       })
     } catch (err) {
       console.error(err)
@@ -305,28 +432,66 @@ export default function Index() {
       {/* Top action header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-[#DCDCDC]">
         <div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <h1 className="text-2xl sm:text-3xl font-extrabold text-[#1F1F1F] tracking-tight">
-              Nova Prancha
+              {projectId
+                ? cliente
+                  ? `${cliente} — v${currentVersion}`
+                  : `Prancha — v${currentVersion}`
+                : 'Nova Prancha'}
             </h1>
             {projectId && (
-              <span className="text-xs bg-[#FFF3EC] text-[#F2612A] font-semibold px-2.5 py-0.5 rounded-full border border-[#F2612A]/30">
-                Editando projeto salvo
-              </span>
+              <div className="flex items-center gap-1.5">
+                <Badge className="bg-[#F2612A] text-white font-bold text-xs px-2.5 py-0.5 shadow-xs">
+                  v{currentVersion}
+                </Badge>
+                {lineageVersions.length > 1 && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsVersionsModalOpen(true)}
+                    className="h-7 text-xs border-[#DCDCDC] hover:bg-[#FFF3EC] hover:text-[#F2612A] gap-1 px-2.5"
+                  >
+                    <History className="w-3.5 h-3.5 text-[#F2612A]" />
+                    <span>{lineageVersions.length} versões</span>
+                  </Button>
+                )}
+              </div>
             )}
           </div>
           <p className="text-sm text-[#6B6B6B] mt-1">
-            Preencha os dados e gere a prancha de apresentação diagramada A4 paisagem
+            {projectId
+              ? `Revisão atual v${currentVersion}. Ao salvar, uma nova revisão (v${currentVersion + 1}) será criada mantendo esta versão acessível.`
+              : 'Preencha os dados e gere a prancha de apresentação diagramada A4 paisagem.'}
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+          {projectId && (
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={handleStartNewBlank}
+              disabled={isSaving || isLoadingProject}
+              className="text-xs text-[#6B6B6B] hover:text-[#1F1F1F] hover:bg-[#F7F7F5] h-10 px-3 font-medium"
+            >
+              <Plus className="w-4 h-4 mr-1" />
+              Nova em branco
+            </Button>
+          )}
+
           <Button
             type="button"
             variant="outline"
             onClick={handleSaveProject}
             disabled={isSaving || isLoadingProject}
-            className="border-[#DCDCDC] text-[#1F1F1F] hover:bg-[#F7F7F5] h-10 px-4 text-xs sm:text-sm font-semibold shadow-xs"
+            className="border-[#DCDCDC] text-[#1F1F1F] hover:bg-[#FFF3EC] hover:text-[#F2612A] h-10 px-4 text-xs sm:text-sm font-semibold shadow-xs"
+            title={
+              projectId
+                ? `Salvar como nova versão (v${currentVersion + 1})`
+                : 'Salvar projeto como v1'
+            }
           >
             {isSaving ? (
               <>
@@ -335,8 +500,8 @@ export default function Index() {
               </>
             ) : (
               <>
-                <Save className="w-4 h-4 mr-2 text-[#6B6B6B]" />
-                Salvar projeto
+                <Save className="w-4 h-4 mr-2 text-[#F2612A]" />
+                {projectId ? `Salvar nova versão (v${currentVersion + 1})` : 'Salvar projeto (v1)'}
               </>
             )}
           </Button>
@@ -687,6 +852,87 @@ export default function Index() {
         data={boardData}
         imageUrl={modalPage.imageUrl}
       />
+
+      {/* Modal: Histórico de Versões / Revisões do Projeto */}
+      <Dialog open={isVersionsModalOpen} onOpenChange={(open) => setIsVersionsModalOpen(open)}>
+        <DialogContent className="max-w-xl bg-white rounded-2xl border border-[#DCDCDC] p-6">
+          <DialogHeader className="pb-3 border-b border-[#DCDCDC]">
+            <DialogTitle className="text-lg font-bold text-[#1F1F1F] flex items-center gap-2">
+              <History className="w-5 h-5 text-[#F2612A]" />
+              <span>Revisões — {cliente || 'Prancha'}</span>
+            </DialogTitle>
+            <DialogDescription className="text-xs text-[#6B6B6B]">
+              Selecione uma revisão anterior para visualizar ou restaurar os dados correspondentes.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="divide-y divide-[#EBEBEB] max-h-[50vh] overflow-y-auto pr-1">
+            {lineageVersions.map((v) => {
+              const isSelected = v.id === projectId
+              const vNum = v.version || 1
+              const vThumb = v.render_imagem
+                ? getProjectFileUrl(v, v.render_imagem, '100x80')
+                : null
+
+              return (
+                <div
+                  key={v.id}
+                  className={`py-3 flex items-center justify-between gap-3 ${
+                    isSelected ? 'bg-[#FFF9F5] -mx-2 px-2 rounded-xl' : 'hover:bg-[#FAFAFA]'
+                  }`}
+                >
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <div className="w-12 h-9 rounded border border-[#DCDCDC] bg-white overflow-hidden shrink-0 flex items-center justify-center">
+                      {vThumb ? (
+                        <img
+                          src={vThumb}
+                          alt={v.cliente}
+                          className="w-full h-full object-contain"
+                        />
+                      ) : (
+                        <FileCheck2 className="w-4 h-4 text-[#8E8E8E]" />
+                      )}
+                    </div>
+
+                    <div className="min-w-0 space-y-0.5">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-xs text-[#1F1F1F]">
+                          {v.cliente} — v{vNum}
+                        </span>
+                        {isSelected && (
+                          <Badge className="bg-[#F2612A] text-white text-[9px] px-1.5 py-0">
+                            Versão Carregada
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="text-[11px] text-[#6B6B6B]">
+                        <span>{formatDisplayDate(v.data) || '-'}</span>
+                        <span className="mx-1.5">•</span>
+                        <span>{new Date(v.created).toLocaleDateString('pt-BR')}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {!isSelected && (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        setIsVersionsModalOpen(false)
+                        navigate(`/?edit=${v.id}`)
+                      }}
+                      className="text-xs h-8 border-[#DCDCDC] hover:bg-[#FFF3EC] hover:text-[#F2612A]"
+                    >
+                      Carregar v{vNum}
+                    </Button>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

@@ -41,9 +41,9 @@ export default function Layout() {
     <div className="flex flex-col min-h-screen bg-[#FAFAFA] text-[#1F1F1F]">
       {/* Header */}
       <header className="sticky top-0 z-40 w-full bg-white border-b border-[#DCDCDC] shadow-xs backdrop-blur-xs">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-18 sm:h-20 flex items-center justify-between">
           <div className="flex items-center gap-6">
-            <Link to="/" className="flex items-center hover:opacity-95 transition-opacity">
+            <Link to="/" className="flex items-center hover:opacity-95 transition-opacity py-1">
               <CorteplanLogo />
             </Link>
 

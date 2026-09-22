@@ -119,9 +119,11 @@ export async function getGrayscaleLogoCanvas(): Promise<HTMLCanvasElement | null
 }
 
 /**
- * Renders an image using "cover" logic inside a target rectangle
+ * Renders an image using "contain/fit" logic inside a target rectangle
+ * Fits the entire image proportionally without cropping any parts, centered.
+ * The background remains white if the image does not cover the entire box.
  */
-function drawImageCover(
+function drawImageContain(
   ctx: CanvasRenderingContext2D,
   img: HTMLImageElement,
   x: number,
@@ -138,20 +140,23 @@ function drawImageCover(
   let offsetY: number
 
   if (imgRatio > targetRatio) {
-    // Image is wider than container
-    renderH = h
-    renderW = h * imgRatio
-    offsetX = x - (renderW - w) / 2
-    offsetY = y
-  } else {
-    // Image is taller than container
+    // Image is wider than container: fit to width, letterbox vertically
     renderW = w
     renderH = w / imgRatio
     offsetX = x
-    offsetY = y - (renderH - h) / 2
+    offsetY = y + (h - renderH) / 2
+  } else {
+    // Image is taller than container: fit to height, letterbox horizontally
+    renderH = h
+    renderW = h * imgRatio
+    offsetX = x + (w - renderW) / 2
+    offsetY = y
   }
 
   ctx.save()
+  // Ensure white background inside bounding box
+  ctx.fillStyle = '#FFFFFF'
+  ctx.fillRect(x, y, w, h)
   ctx.beginPath()
   ctx.rect(x, y, w, h)
   ctx.clip()
@@ -670,7 +675,14 @@ export async function renderImagePageCanvas(
   if (imageUrl) {
     try {
       const img = await loadImage(imageUrl)
-      drawImageCover(ctx, img, SHEET_IMAGE_X, SHEET_IMAGE_Y, SHEET_IMAGE_WIDTH, SHEET_IMAGE_HEIGHT)
+      drawImageContain(
+        ctx,
+        img,
+        SHEET_IMAGE_X,
+        SHEET_IMAGE_Y,
+        SHEET_IMAGE_WIDTH,
+        SHEET_IMAGE_HEIGHT,
+      )
     } catch {
       ctx.fillStyle = '#F7F7F5'
       ctx.fillRect(SHEET_IMAGE_X, SHEET_IMAGE_Y, SHEET_IMAGE_WIDTH, SHEET_IMAGE_HEIGHT)

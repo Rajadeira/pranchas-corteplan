@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-22T23:02:11.747Z",
+  "generatedAt": "2026-09-22T23:20:31.284Z",
   "collections": [
     {
       "name": "users",
@@ -135,11 +135,30 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "version",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "parent_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "version_notes",
+          "type": "text",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [
         "CREATE INDEX idx_projects_user_id ON projects (user_id)",
-        "CREATE INDEX idx_projects_created ON projects (created DESC)"
+        "CREATE INDEX idx_projects_created ON projects (created DESC)",
+        "CREATE INDEX `idx_projects_parent_id` ON `projects` (parent_id)"
       ]
     }
   ]

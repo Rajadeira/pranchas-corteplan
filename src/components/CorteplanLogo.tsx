@@ -47,9 +47,10 @@ export const CorteplanLogo: React.FC<CorteplanLogoProps> = ({
   }
 
   // variant === 'full' (header, auth pages, default)
+  // Aumentado em 40% (h-8 [32px] -> ~45px [h-11 sm:h-12 / 44px-48px])
   return (
     <div className={`flex items-center select-none ${className}`}>
-      <img src={corteplanLogoImg} alt={alt} className="h-8 sm:h-9 w-auto object-contain" />
+      <img src={corteplanLogoImg} alt={alt} className="h-11 sm:h-12 w-auto object-contain" />
     </div>
   )
 }

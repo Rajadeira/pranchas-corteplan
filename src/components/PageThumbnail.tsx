@@ -54,7 +54,7 @@ export const PageThumbnail: React.FC<PageThumbnailProps> = ({
           <div className="relative w-full h-full">
             {/* Foto carregada no container determinístico (x: 2.5%, y: 3.55%, w: 95%, h: 85.16%) */}
             <div
-              className="absolute overflow-hidden bg-[#F7F7F5] border border-[#DCDCDC]"
+              className="absolute overflow-hidden bg-white border border-[#DCDCDC]"
               style={{
                 left: '2.5%',
                 top: '3.55%',
@@ -63,9 +63,13 @@ export const PageThumbnail: React.FC<PageThumbnailProps> = ({
               }}
             >
               {imageUrl ? (
-                <img src={imageUrl} alt={title} className="w-full h-full object-cover" />
+                <img
+                  src={imageUrl}
+                  alt={title}
+                  className="w-full h-full object-contain object-center"
+                />
               ) : (
-                <div className="w-full h-full flex flex-col items-center justify-center text-center p-2 text-[#8E8E8E]">
+                <div className="w-full h-full flex flex-col items-center justify-center text-center p-2 text-[#8E8E8E] bg-[#F7F7F5]">
                   <span className="text-[8px] sm:text-[10px] font-semibold text-[#6B6B6B]">
                     {title}
                   </span>
