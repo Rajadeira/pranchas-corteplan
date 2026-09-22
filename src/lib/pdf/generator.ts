@@ -20,11 +20,11 @@ export interface BoardData {
 export const ADDRESS_TEXT =
   'CORTEPLAN MÓVEIS ESPECIAIS - R. Friedrich Bischof, nº 80 - Polo Industrial - Sertãozinho - Mauá'
 
-export const COPYRIGHT_LINE_1 =
-  '© CORTEPLAN – Uso restrito e protegido pela Lei de Direitos Autorais nº 9.610/98.'
-export const COPYRIGHT_LINE_2 = 'Solicite autorização para reprodução ou adaptação.'
+export const COPYRIGHT_LINE_1 = '© CORTEPLAN – Uso restrito e protegido pela Lei de'
+export const COPYRIGHT_LINE_2 = 'Direitos Autorais nº 9.610/98.'
+export const COPYRIGHT_LINE_3 = 'Solicite autorização para reprodução ou adaptação.'
 
-export const COPYRIGHT_TEXT = `${COPYRIGHT_LINE_1}\n${COPYRIGHT_LINE_2}`
+export const COPYRIGHT_TEXT = `${COPYRIGHT_LINE_1}\n${COPYRIGHT_LINE_2}\n${COPYRIGHT_LINE_3}`
 
 import corteplanLogoAssetUrl from '@/assets/logo-novo-corteplan-ffd51.jpg'
 
@@ -190,7 +190,7 @@ export function drawFooterCanvas(
   pageNumber: number,
   totalWidth: number,
   footerY: number,
-  _footerHeight: number,
+  footerHeight: number,
   logoImg?: HTMLImageElement | null,
 ) {
   ctx.save()
@@ -199,117 +199,143 @@ export function drawFooterCanvas(
   ctx.strokeStyle = '#DCDCDC'
   ctx.lineWidth = 2
   ctx.beginPath()
-  ctx.moveTo(80, footerY)
-  ctx.lineTo(totalWidth - 80, footerY)
+  ctx.moveTo(88, footerY)
+  ctx.lineTo(totalWidth - 88, footerY)
   ctx.stroke()
 
+  // Available footer content height: footerHeight = ~372px (15% of 2480)
+
   // Block 1: Logo Corteplan oficial (proporção aprox. 2:1)
-  const logoX = 85
-  const logoY = footerY + 22
-  drawLogoCanvas(ctx, logoX, logoY, 440, 96, logoImg)
+  // Largura ~13-14% da largura da página (~460-480px em 3508px)
+  const logoX = 96
+  const logoW = 460
+  const logoH = 200
+  const logoY = footerY + (footerHeight - logoH) / 2
+  drawLogoCanvas(ctx, logoX, logoY, logoW, logoH, logoImg)
 
   // Block 2: Orange vertical bar + 3 lines (CLIENTE:, MODELO:, DATA:)
-  // Standard proportions matching Corteplan layout
-  const sec2X = 580
-  const sec2Y = footerY + 22
-  const barH = 94
+  // Posicionado logo após o logo, x ~ 610px (~17.4% da largura da página)
+  const sec2X = 610
+  const barW = 12
+  const barH = 220
+  const sec2Y = footerY + (footerHeight - barH) / 2
 
   // Orange vertical bar (#E08A2E)
   ctx.fillStyle = '#E08A2E'
-  ctx.fillRect(sec2X, sec2Y, 7, barH)
+  ctx.fillRect(sec2X, sec2Y, barW, barH)
 
-  const textLeft2 = sec2X + 24
+  const textLeft2 = sec2X + 36
   ctx.letterSpacing = '0px'
   ctx.textAlign = 'left'
 
-  // Line 1: CLIENTE:
-  ctx.font = '700 20px Inter, sans-serif'
-  ctx.fillStyle = '#6B6B6B'
-  ctx.fillText('CLIENTE: ', textLeft2, sec2Y + 22)
+  // 3 linhas uniformes com espaçamento de 68px
+  // Linha 1: CLIENTE:
+  const line1Y = sec2Y + 44
+  ctx.font = '700 44px Inter, sans-serif'
+  ctx.fillStyle = '#5A5A5A'
+  ctx.fillText('CLIENTE: ', textLeft2, line1Y)
   const cliLabelW = ctx.measureText('CLIENTE: ').width
-  ctx.font = '600 21px Inter, sans-serif'
-  ctx.fillStyle = '#1F1F1F'
-  ctx.fillText(data.cliente || '-', textLeft2 + cliLabelW, sec2Y + 22)
+  ctx.font = '400 44px Inter, sans-serif'
+  ctx.fillStyle = '#222222'
+  ctx.fillText(data.cliente || '-', textLeft2 + cliLabelW, line1Y)
 
-  // Line 2: MODELO:
-  ctx.font = '700 20px Inter, sans-serif'
-  ctx.fillStyle = '#6B6B6B'
-  ctx.fillText('MODELO: ', textLeft2, sec2Y + 54)
+  // Linha 2: MODELO:
+  const line2Y = line1Y + 68
+  ctx.font = '700 44px Inter, sans-serif'
+  ctx.fillStyle = '#5A5A5A'
+  ctx.fillText('MODELO: ', textLeft2, line2Y)
   const modLabelW = ctx.measureText('MODELO: ').width
-  ctx.font = '600 21px Inter, sans-serif'
-  ctx.fillStyle = '#1F1F1F'
-  ctx.fillText(data.modelo || '-', textLeft2 + modLabelW, sec2Y + 54)
+  ctx.font = '400 44px Inter, sans-serif'
+  ctx.fillStyle = '#222222'
+  ctx.fillText(data.modelo || '-', textLeft2 + modLabelW, line2Y)
 
-  // Line 3: DATA:
-  ctx.font = '700 20px Inter, sans-serif'
-  ctx.fillStyle = '#6B6B6B'
-  ctx.fillText('DATA: ', textLeft2, sec2Y + 84)
+  // Linha 3: DATA:
+  const line3Y = line2Y + 68
+  ctx.font = '700 44px Inter, sans-serif'
+  ctx.fillStyle = '#5A5A5A'
+  ctx.fillText('DATA: ', textLeft2, line3Y)
   const datLabelW = ctx.measureText('DATA: ').width
-  ctx.font = '600 21px Inter, sans-serif'
-  ctx.fillStyle = '#1F1F1F'
-  ctx.fillText(formatDisplayDate(data.data) || '-', textLeft2 + datLabelW, sec2Y + 84)
+  ctx.font = '400 44px Inter, sans-serif'
+  ctx.fillStyle = '#222222'
+  ctx.fillText(formatDisplayDate(data.data) || '-', textLeft2 + datLabelW, line3Y)
 
   // Block 3: 3 lines (VENDEDOR:, PROJETO:, RESPONSÁVEL:)
-  const sec3X = 1420
-  const sec3Y = sec2Y
+  // Começa em ~44% da largura da página (x ~ 1550px)
+  const sec3X = Math.round(totalWidth * 0.442)
 
-  // Line 1: VENDEDOR:
-  ctx.font = '700 20px Inter, sans-serif'
-  ctx.fillStyle = '#6B6B6B'
-  ctx.fillText('VENDEDOR: ', sec3X, sec3Y + 22)
+  // Linha 1: VENDEDOR:
+  ctx.font = '700 44px Inter, sans-serif'
+  ctx.fillStyle = '#5A5A5A'
+  ctx.fillText('VENDEDOR: ', sec3X, line1Y)
   const vendLabelW = ctx.measureText('VENDEDOR: ').width
-  ctx.font = '600 21px Inter, sans-serif'
-  ctx.fillStyle = '#1F1F1F'
-  ctx.fillText(data.vendedor || '-', sec3X + vendLabelW, sec3Y + 22)
+  ctx.font = '400 44px Inter, sans-serif'
+  ctx.fillStyle = '#222222'
+  ctx.fillText(data.vendedor || '-', sec3X + vendLabelW, line1Y)
 
-  // Line 2: PROJETO:
-  ctx.font = '700 20px Inter, sans-serif'
-  ctx.fillStyle = '#6B6B6B'
-  ctx.fillText('PROJETO: ', sec3X, sec3Y + 54)
+  // Linha 2: PROJETO:
+  ctx.font = '700 44px Inter, sans-serif'
+  ctx.fillStyle = '#5A5A5A'
+  ctx.fillText('PROJETO: ', sec3X, line2Y)
   const projLabelW = ctx.measureText('PROJETO: ').width
-  ctx.font = '600 21px Inter, sans-serif'
-  ctx.fillStyle = '#1F1F1F'
-  ctx.fillText(data.projeto || '-', sec3X + projLabelW, sec3Y + 54)
+  ctx.font = '400 44px Inter, sans-serif'
+  ctx.fillStyle = '#222222'
+  ctx.fillText(data.projeto || '-', sec3X + projLabelW, line2Y)
 
-  // Line 3: RESPONSÁVEL:
-  ctx.font = '700 20px Inter, sans-serif'
-  ctx.fillStyle = '#6B6B6B'
-  ctx.fillText('RESPONSÁVEL: ', sec3X, sec3Y + 84)
+  // Linha 3: RESPONSÁVEL:
+  ctx.font = '700 44px Inter, sans-serif'
+  ctx.fillStyle = '#5A5A5A'
+  ctx.fillText('RESPONSÁVEL: ', sec3X, line3Y)
   const respLabelW = ctx.measureText('RESPONSÁVEL: ').width
-  ctx.font = '600 21px Inter, sans-serif'
-  ctx.fillStyle = '#1F1F1F'
-  ctx.fillText(data.responsavel || '-', sec3X + respLabelW, sec3Y + 84)
+  ctx.font = '400 44px Inter, sans-serif'
+  ctx.fillStyle = '#222222'
+  ctx.fillText(data.responsavel || '-', sec3X + respLabelW, line3Y)
 
   // Block 4: Copyright box + Big Page Number
   const pageNumStr = pageNumber < 10 ? `0${pageNumber}` : `${pageNumber}`
-  const rightMargin = totalWidth - 80
+  const rightMargin = totalWidth - 88
   const sec4Right = rightMargin
 
-  // Draw Page Number at right edge (prominent 86px dark anthracite)
-  ctx.font = '900 86px Inter, sans-serif'
-  ctx.fillStyle = '#4A4A4A'
+  // Draw Page Number at right edge (prominent 210px gray, ~60% da altura do rodapé, cor cinza #737373)
+  ctx.font = '700 200px Inter, sans-serif'
+  ctx.fillStyle = '#737373'
   ctx.textAlign = 'right'
-  ctx.fillText(pageNumStr, sec4Right, footerY + 96)
+  const pageNumY = footerY + (footerHeight + 140) / 2
+  ctx.fillText(pageNumStr, sec4Right, pageNumY)
 
-  // Copyright box with dark background (#3A3A3A) and crisp 2-line text
+  // Copyright box with dark background (#3A3A3A) e cantos levemente arredondados
   const pageNumWidth = ctx.measureText(pageNumStr).width
-  const boxRight = sec4Right - pageNumWidth - 36
-  const boxWidth = 720
+  const boxGap = 70
+  const boxRight = sec4Right - pageNumWidth - boxGap
+  const boxWidth = 710
   const boxLeft = boxRight - boxWidth
-  const boxTop = footerY + 24
-  const boxHeight = 88
+  const boxHeight = 185
+  const boxTop = footerY + (footerHeight - boxHeight) / 2
+  const boxRadius = 16
 
-  // Box background
+  // Box background com cantos arredondados
   ctx.fillStyle = '#3A3A3A'
-  ctx.fillRect(boxLeft, boxTop, boxWidth, boxHeight)
+  ctx.beginPath()
+  if (ctx.roundRect) {
+    ctx.roundRect(boxLeft, boxTop, boxWidth, boxHeight, boxRadius)
+  } else {
+    ctx.rect(boxLeft, boxTop, boxWidth, boxHeight)
+  }
+  ctx.fill()
 
-  // Box text inside - 2 lines, small white text
+  // Box text inside - 3 linhas miúdas brancas, exatamente como na referência:
+  // Linha 1: © CORTEPLAN – Uso restrito e protegido pela Lei de
+  // Linha 2: Direitos Autorais nº 9.610/98.
+  // Linha 3: Solicite autorização para reprodução ou adaptação.
   ctx.textAlign = 'left'
   ctx.fillStyle = '#FFFFFF'
-  ctx.font = '500 15px Inter, sans-serif'
+  ctx.font = '400 30px Inter, sans-serif'
   ctx.letterSpacing = '0px'
-  ctx.fillText(COPYRIGHT_LINE_1, boxLeft + 20, boxTop + 36)
-  ctx.fillText(COPYRIGHT_LINE_2, boxLeft + 20, boxTop + 64)
+  const boxPaddingX = 28
+  const boxLine1Y = boxTop + 48
+  const boxLineSpacing = 44
+  ctx.fillText(COPYRIGHT_LINE_1, boxLeft + boxPaddingX, boxLine1Y)
+  ctx.fillText(COPYRIGHT_LINE_2, boxLeft + boxPaddingX, boxLine1Y + boxLineSpacing)
+  ctx.fillText(COPYRIGHT_LINE_3, boxLeft + boxPaddingX, boxLine1Y + boxLineSpacing * 2)
 
   ctx.restore()
 }
@@ -320,10 +346,10 @@ export function drawFooterCanvas(
 export function drawAddressBarCanvas(ctx: CanvasRenderingContext2D, totalWidth: number) {
   ctx.save()
   ctx.fillStyle = '#8E8E8E'
-  ctx.font = '500 18px Inter, sans-serif'
+  ctx.font = '500 26px Inter, sans-serif'
   ctx.textAlign = 'center'
-  ctx.letterSpacing = '0.4px'
-  ctx.fillText(ADDRESS_TEXT, totalWidth / 2, 60)
+  ctx.letterSpacing = '0.5px'
+  ctx.fillText(ADDRESS_TEXT, totalWidth / 2, 58)
   ctx.restore()
 }
 
@@ -381,13 +407,18 @@ export async function renderImagePageCanvas(
   drawAddressBarCanvas(ctx, CANVAS_WIDTH)
 
   // Dimensions of usable area
-  const marginX = 80
-  const marginTop = 90
-  const footerHeight = 150
-  const marginBottom = footerHeight + 20
+  // Margens: 2.5% de 3508 = 88px nas laterais e no topo
+  const marginX = 88
+  const marginTop = 88
 
+  // Rodapé: ~15% de 2480 = 372px
+  const footerHeight = 372
+  const footerY = CANVAS_HEIGHT - footerHeight
+
+  // Imagem vai de marginTop até footerY:
+  // altura da imagem: 2480 - 88 - 372 = 2020px (~81.5% do total; do topo até o fim da imagem são 2108px = ~85% da página!)
   const areaW = CANVAS_WIDTH - marginX * 2
-  const areaH = CANVAS_HEIGHT - marginTop - marginBottom
+  const areaH = footerY - marginTop
   const areaX = marginX
   const areaY = marginTop
 
@@ -423,7 +454,6 @@ export async function renderImagePageCanvas(
   }
 
   // Draw Standard Footer
-  const footerY = CANVAS_HEIGHT - footerHeight
   drawFooterCanvas(ctx, data, pageNumber, CANVAS_WIDTH, footerY, footerHeight, logoImg)
 }
 

@@ -5,6 +5,7 @@ import {
   ADDRESS_TEXT,
   COPYRIGHT_LINE_1,
   COPYRIGHT_LINE_2,
+  COPYRIGHT_LINE_3,
 } from '@/lib/pdf/generator'
 import type { BoardData } from '@/lib/pdf/generator'
 
@@ -35,7 +36,7 @@ export const PageThumbnail: React.FC<PageThumbnailProps> = ({
       className={`group relative bg-white border border-[#DCDCDC] rounded-xl shadow-xs overflow-hidden cursor-pointer transition-all duration-200 hover:shadow-md hover:border-[#F2612A]/60 hover:scale-[1.01] ${className}`}
     >
       {/* 297 x 210 aspect ratio container (approx 1.414:1) */}
-      <div className="relative w-full aspect-[297/210] bg-white p-2 sm:p-2.5 flex flex-col justify-between overflow-hidden select-none">
+      <div className="relative w-full aspect-[297/210] bg-white p-[2.5%] flex flex-col justify-between overflow-hidden select-none">
         {type === 'cover' ? (
           // Capa: apenas o logo oficial da Corteplan centralizado
           <div className="w-full h-full flex flex-col items-center justify-center p-4">
@@ -46,15 +47,15 @@ export const PageThumbnail: React.FC<PageThumbnailProps> = ({
         ) : (
           // Páginas com imagem + endereço topo + rodapé
           <>
-            {/* Top address bar */}
-            <div className="w-full text-center py-0.5 border-b border-transparent">
-              <span className="text-[5.5px] sm:text-[6.5px] text-[#8E8E8E] font-medium truncate block tracking-tight">
+            {/* Top address bar fixo no topo acima da imagem */}
+            <div className="absolute top-[0.6%] left-0 right-0 text-center pointer-events-none z-10">
+              <span className="text-[5px] sm:text-[6px] text-[#8E8E8E] font-medium tracking-wide truncate block px-2">
                 {ADDRESS_TEXT}
               </span>
             </div>
 
-            {/* Usable image area with light gray hairline border */}
-            <div className="flex-1 w-full my-1 border border-[#DCDCDC] rounded-xs overflow-hidden bg-[#F7F7F5] relative flex items-center justify-center">
+            {/* Usable image area: da margem superior (~2.5%) até o topo do rodapé (ocupando ~85% da altura da página) */}
+            <div className="w-full flex-1 min-h-0 border border-[#DCDCDC] overflow-hidden bg-[#F7F7F5] relative flex items-center justify-center">
               {imageUrl ? (
                 <img src={imageUrl} alt={title} className="w-full h-full object-cover" />
               ) : (
@@ -67,68 +68,58 @@ export const PageThumbnail: React.FC<PageThumbnailProps> = ({
               )}
             </div>
 
-            {/* Standard Footer faithful to Corteplan reference board */}
-            <div className="w-full pt-1.5 border-t border-[#DCDCDC] flex items-center justify-between text-[4.5px] sm:text-[5.5px] text-[#1F1F1F] gap-1 sm:gap-2">
-              {/* Block 1: Logo Oficial (proporção aprox. 2:1) */}
-              <div className="shrink-0 flex items-center w-[16%] max-w-[62px]">
-                <CorteplanLogo variant="footer" className="w-full max-h-5 object-contain" />
+            {/* Standard Footer faithful to Corteplan reference board (~15% da altura da página) */}
+            <div className="w-full h-[15%] shrink-0 border-t border-[#DCDCDC] flex items-center relative text-[4px] sm:text-[5px] text-[#1F1F1F]">
+              {/* Bloco 1: Logo Oficial Corteplan (~13-14% da largura) */}
+              <div className="shrink-0 flex items-center w-[13.5%] h-full py-[1%]">
+                <CorteplanLogo variant="footer" className="w-full max-h-[85%] object-contain" />
               </div>
 
-              {/* Block 2: Orange vertical bar + 3 lines (CLIENTE:, MODELO:, DATA:) */}
-              <div className="flex items-stretch gap-1 sm:gap-1.5 border-l-2 border-[#E08A2E] pl-1 sm:pl-1.5 w-[25%] shrink-0">
-                <div className="flex flex-col justify-center leading-tight truncate py-0.5">
-                  <span className="truncate">
-                    <span className="text-[#6B6B6B] font-bold text-[4px] sm:text-[5px]">
-                      CLIENTE:{' '}
-                    </span>
-                    <span className="font-semibold text-[#1F1F1F]">{data.cliente || '-'}</span>
-                  </span>
-                  <span className="truncate mt-0.5">
-                    <span className="text-[#6B6B6B] font-bold text-[4px] sm:text-[5px]">
-                      MODELO:{' '}
-                    </span>
-                    <span className="font-semibold text-[#1F1F1F]">{data.modelo || '-'}</span>
-                  </span>
-                  <span className="truncate mt-0.5">
-                    <span className="text-[#6B6B6B] font-bold text-[4px] sm:text-[5px]">
-                      DATA:{' '}
-                    </span>
-                    <span className="font-semibold text-[#1F1F1F]">
+              {/* Bloco 2: Barra vertical laranja + 3 linhas (CLIENTE, MODELO, DATA) */}
+              <div className="flex items-center gap-[3px] sm:gap-1.5 h-full pl-[2%] pr-[1%]">
+                <div className="w-[2px] sm:w-[3px] h-[72%] bg-[#E08A2E] shrink-0 rounded-none" />
+                <div className="flex flex-col justify-center leading-[1.25] whitespace-nowrap">
+                  <div>
+                    <span className="font-bold text-[#5A5A5A]">CLIENTE: </span>
+                    <span className="font-normal text-[#222222]">{data.cliente || '-'}</span>
+                  </div>
+                  <div>
+                    <span className="font-bold text-[#5A5A5A]">MODELO: </span>
+                    <span className="font-normal text-[#222222]">{data.modelo || '-'}</span>
+                  </div>
+                  <div>
+                    <span className="font-bold text-[#5A5A5A]">DATA: </span>
+                    <span className="font-normal text-[#222222]">
                       {formatDisplayDate(data.data) || '-'}
                     </span>
-                  </span>
+                  </div>
                 </div>
               </div>
 
-              {/* Block 3: 3 lines (VENDEDOR:, PROJETO:, RESPONSÁVEL:) */}
-              <div className="flex flex-col justify-center leading-tight w-[27%] shrink-0 truncate py-0.5">
-                <span className="truncate">
-                  <span className="text-[#6B6B6B] font-bold text-[4px] sm:text-[5px]">
-                    VENDEDOR:{' '}
-                  </span>
-                  <span className="font-semibold text-[#1F1F1F]">{data.vendedor || '-'}</span>
-                </span>
-                <span className="truncate mt-0.5">
-                  <span className="text-[#6B6B6B] font-bold text-[4px] sm:text-[5px]">
-                    PROJETO:{' '}
-                  </span>
-                  <span className="font-semibold text-[#1F1F1F]">{data.projeto || '-'}</span>
-                </span>
-                <span className="truncate mt-0.5">
-                  <span className="text-[#6B6B6B] font-bold text-[4px] sm:text-[5px]">
-                    RESPONSÁVEL:{' '}
-                  </span>
-                  <span className="font-semibold text-[#1F1F1F]">{data.responsavel || '-'}</span>
-                </span>
+              {/* Bloco 3: 3 linhas (VENDEDOR, PROJETO, RESPONSÁVEL) começando em ~44% */}
+              <div className="absolute left-[44%] flex flex-col justify-center leading-[1.25] whitespace-nowrap">
+                <div>
+                  <span className="font-bold text-[#5A5A5A]">VENDEDOR: </span>
+                  <span className="font-normal text-[#222222]">{data.vendedor || '-'}</span>
+                </div>
+                <div>
+                  <span className="font-bold text-[#5A5A5A]">PROJETO: </span>
+                  <span className="font-normal text-[#222222]">{data.projeto || '-'}</span>
+                </div>
+                <div>
+                  <span className="font-bold text-[#5A5A5A]">RESPONSÁVEL: </span>
+                  <span className="font-normal text-[#222222]">{data.responsavel || '-'}</span>
+                </div>
               </div>
 
-              {/* Block 4: Copyright box + Big Page Number */}
-              <div className="flex items-center gap-1 sm:gap-2 shrink-0 ml-auto">
-                <div className="hidden xs:block sm:block bg-[#3A3A3A] text-white px-1 sm:px-1.5 py-0.5 text-[3.8px] sm:text-[4.5px] leading-tight rounded-[1px] max-w-[85px] sm:max-w-[110px]">
-                  <p className="truncate font-normal">{COPYRIGHT_LINE_1}</p>
-                  <p className="truncate font-normal">{COPYRIGHT_LINE_2}</p>
+              {/* Bloco 4: À direita: Caixa copyright antracite (#3A3A3A) + Número da página grande cinza */}
+              <div className="ml-auto flex items-center gap-1.5 sm:gap-2 h-full py-[1%]">
+                <div className="bg-[#3A3A3A] text-white px-1 sm:px-1.5 py-0.5 rounded-[2px] text-[3.2px] sm:text-[4px] leading-[1.25] tracking-tight font-normal text-left max-w-[100px] sm:max-w-[125px]">
+                  <p className="truncate">{COPYRIGHT_LINE_1}</p>
+                  <p className="truncate">{COPYRIGHT_LINE_2}</p>
+                  <p className="truncate">{COPYRIGHT_LINE_3}</p>
                 </div>
-                <div className="text-[13px] sm:text-[16px] font-black tracking-tight text-[#4A4A4A] leading-none min-w-[18px] text-right font-sans">
+                <div className="text-[13px] sm:text-[18px] font-bold text-[#737373] leading-none text-right font-sans min-w-[16px]">
                   {pageNumStr}
                 </div>
               </div>
