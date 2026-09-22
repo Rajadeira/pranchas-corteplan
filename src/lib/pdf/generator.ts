@@ -27,9 +27,15 @@ export const COPYRIGHT_LINE_3 = 'Solicite autorização para reprodução ou ada
 export const COPYRIGHT_TEXT = `${COPYRIGHT_LINE_1}\n${COPYRIGHT_LINE_2}\n${COPYRIGHT_LINE_3}`
 
 import corteplanLogoAssetUrl from '@/assets/logo-novo-corteplan-ffd51.jpg'
+import capaAssetUrl from '@/assets/capa-34f51.png'
+import folhaMolduraAssetUrl from '@/assets/folha-01-c7c4c.png'
+
+export { capaAssetUrl, folhaMolduraAssetUrl }
 
 let cachedLogoImg: HTMLImageElement | null = null
 let cachedGrayscaleLogoImg: HTMLCanvasElement | null = null
+let cachedCapaImg: HTMLImageElement | null = null
+let cachedFolhaMolduraImg: HTMLImageElement | null = null
 
 /**
  * Loads an image into an HTMLImageElement
@@ -53,6 +59,32 @@ export async function getOfficialLogoImage(): Promise<HTMLImageElement> {
   }
   cachedLogoImg = await loadImage(corteplanLogoAssetUrl)
   return cachedLogoImg
+}
+
+/**
+ * Loads the official Cover PNG reference image (cached)
+ */
+export async function getOfficialCoverImage(): Promise<HTMLImageElement> {
+  if (cachedCapaImg && cachedCapaImg.complete && cachedCapaImg.naturalWidth > 0) {
+    return cachedCapaImg
+  }
+  cachedCapaImg = await loadImage(capaAssetUrl)
+  return cachedCapaImg
+}
+
+/**
+ * Loads the official Sheet Template PNG (locked background)
+ */
+export async function getOfficialSheetTemplateImage(): Promise<HTMLImageElement> {
+  if (
+    cachedFolhaMolduraImg &&
+    cachedFolhaMolduraImg.complete &&
+    cachedFolhaMolduraImg.naturalWidth > 0
+  ) {
+    return cachedFolhaMolduraImg
+  }
+  cachedFolhaMolduraImg = await loadImage(folhaMolduraAssetUrl)
+  return cachedFolhaMolduraImg
 }
 
 /**
@@ -387,21 +419,18 @@ export function drawFooterCanvas(
   const rightMargin = totalWidth - 88
   const sec4Right = rightMargin
 
-  // Item 7.d: Page number digits ("01", "02", "03"): big medium gray (#737373), weight 900, height ~60% of footer (~160px)
-  ctx.font = '900 165px Inter, sans-serif'
+  // Item 7.d: Page number digits ("01", "02", "03"): big medium gray (#737373), weight 900
+  ctx.font = '900 135px Inter, sans-serif'
   ctx.fillStyle = '#737373'
   ctx.textAlign = 'right'
-  const pageNumY = footerY + (footerHeight + 115) / 2
+  const pageNumY = 2356
   ctx.fillText(pageNumStr, sec4Right, pageNumY)
 
-  // Item 7.c: Copyright box: anthracite (#3A3A3A) rounded small radius, white tiny text, before page number
-  const pageNumWidth = ctx.measureText(pageNumStr).width
-  const boxGap = 55
-  const boxRight = sec4Right - pageNumWidth - boxGap
-  const boxWidth = 680
-  const boxLeft = boxRight - boxWidth
-  const boxHeight = 140
-  const boxTop = footerY + (footerHeight - boxHeight) / 2
+  // Item 7.c: Copyright box: anthracite (#3A3A3A) rounded small radius (x=2490, y=2270, w=685, h=125)
+  const boxLeft = 2490
+  const boxTop = 2270
+  const boxWidth = 685
+  const boxHeight = 125
   const boxRadius = 10
 
   ctx.fillStyle = '#3A3A3A'
@@ -416,11 +445,11 @@ export function drawFooterCanvas(
   // 3 small white lines in copyright box
   ctx.textAlign = 'left'
   ctx.fillStyle = '#FFFFFF'
-  ctx.font = '400 24px Inter, sans-serif'
+  ctx.font = '400 22px Inter, sans-serif'
   ctx.letterSpacing = '0px'
-  const boxPaddingX = 24
+  const boxPaddingX = 26
   const boxLine1Y = boxTop + 38
-  const boxLineSpacing = 36
+  const boxLineSpacing = 32
   ctx.fillText(COPYRIGHT_LINE_1, boxLeft + boxPaddingX, boxLine1Y)
   ctx.fillText(COPYRIGHT_LINE_2, boxLeft + boxPaddingX, boxLine1Y + boxLineSpacing)
   ctx.fillText(COPYRIGHT_LINE_3, boxLeft + boxPaddingX, boxLine1Y + boxLineSpacing * 2)
@@ -442,21 +471,31 @@ export function drawAddressBarCanvas(ctx: CanvasRenderingContext2D, totalWidth: 
 }
 
 /**
- * Renders Cover Page onto a Canvas
+ * Renders Cover Page onto a Canvas.
+ * Uses the user's official cover PNG directly across the full A4 landscape sheet.
+ * Falls back to programmatic render if image load fails.
  */
 export async function renderCoverPageCanvas(canvas: HTMLCanvasElement): Promise<void> {
   canvas.width = CANVAS_WIDTH
   canvas.height = CANVAS_HEIGHT
   const ctx = canvas.getContext('2d')!
 
-  // White background
+  try {
+    const capaImg = await getOfficialCoverImage()
+    if (capaImg && capaImg.width > 0 && capaImg.height > 0) {
+      // Draw official PNG across full A4 sheet (3508 x 2480, 300 DPI)
+      ctx.drawImage(capaImg, 0, 0, CANVAS_WIDTH, CANVAS_HEIGHT)
+      return
+    }
+  } catch (err) {
+    console.warn('Falha ao carregar imagem PNG da capa, usando fallback vetorial:', err)
+  }
+
+  // Fallback programmatic cover if image load fails
   ctx.fillStyle = '#FFFFFF'
   ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT)
-
-  // Item 4: Thin light gray outer page frame (#DCDCDC) inset ~1% around the whole sheet
   drawPageOuterBorder(ctx, CANVAS_WIDTH, CANVAS_HEIGHT)
 
-  // Pre-load official colored logo
   let logoImg: HTMLImageElement | null = null
   try {
     logoImg = await getOfficialLogoImage()
@@ -464,16 +503,92 @@ export async function renderCoverPageCanvas(canvas: HTMLCanvasElement): Promise<
     console.warn('Falha ao pré-carregar logo oficial para capa do PDF:', e)
   }
 
-  // Item 2: Colored logo centered horizontally, slightly above middle (vertical center at ~45% height)
-  // width ~22-25% of sheet width
   drawCoverLogoCanvas(ctx, CANVAS_WIDTH / 2, CANVAS_HEIGHT * 0.45, logoImg)
-
-  // Item 1: Anthracite bar at bottom with diagonal orange accent and white italic address
   drawCoverBottomBar(ctx, CANVAS_WIDTH, CANVAS_HEIGHT)
 }
 
 /**
+ * Deterministic layout positions for Locked Presentation Sheet:
+ * The template has fixed/locked elements:
+ * - Outer light gray frame (#DCDCDC) inset at 35px
+ * - Inner photo box from x=88, y=88 to totalWidth-88, y=2200
+ * - Locked footer template:
+ *   - Logo monochromatic/desaturated on left
+ *   - Orange vertical divider bar
+ *   - Labels: CLIENTE:, MODELO:, DATA:, VENDEDOR:, PROJETO:, RESPONSÁVEL:
+ *   - Anthracite copyright box with exact 2-line legal text
+ *   - Big page number digits in gray
+ */
+
+// Usable inner photo area (3332 x 2112 px)
+export const SHEET_IMAGE_X = 88
+export const SHEET_IMAGE_Y = 88
+export const SHEET_IMAGE_WIDTH = CANVAS_WIDTH - SHEET_IMAGE_X * 2 // 3332px (88 to 3420)
+export const SHEET_FOOTER_Y = 2200 // dividing hairline
+export const SHEET_IMAGE_HEIGHT = SHEET_FOOTER_Y - SHEET_IMAGE_Y // 2112px
+
+// Locked footer positions
+export const FOOTER_LINE1_Y = 2266
+export const FOOTER_LINE2_Y = 2322
+export const FOOTER_LINE3_Y = 2378
+
+export const COL1_VALUE_X = 760 // starts immediately after longest label in col 1 (CLIENTE: )
+export const COL2_VALUE_X = 1810 // starts immediately after longest label in col 2 (RESPONSÁVEL: )
+
+/**
+ * Draws the dynamic text and page number over the locked sheet template
+ */
+export function drawSheetDynamicValues(
+  ctx: CanvasRenderingContext2D,
+  data: BoardData,
+  pageNumber: number,
+) {
+  ctx.save()
+  ctx.letterSpacing = '0px'
+  ctx.textAlign = 'left'
+
+  // Values in dark graphite font (#222222)
+  ctx.font = '400 32px Inter, sans-serif'
+  ctx.fillStyle = '#222222'
+
+  // Column 1 values
+  if (data.cliente) {
+    ctx.fillText(data.cliente, COL1_VALUE_X, FOOTER_LINE1_Y)
+  }
+  if (data.modelo) {
+    ctx.fillText(data.modelo, COL1_VALUE_X, FOOTER_LINE2_Y)
+  }
+  if (data.data) {
+    ctx.fillText(formatDisplayDate(data.data), COL1_VALUE_X, FOOTER_LINE3_Y)
+  }
+
+  // Column 2 values
+  if (data.vendedor) {
+    ctx.fillText(data.vendedor, COL2_VALUE_X, FOOTER_LINE1_Y)
+  }
+  if (data.projeto) {
+    ctx.fillText(data.projeto, COL2_VALUE_X, FOOTER_LINE2_Y)
+  }
+  if (data.responsavel) {
+    ctx.fillText(data.responsavel, COL2_VALUE_X, FOOTER_LINE3_Y)
+  }
+
+  // Big Page Number ("01", "02", "03", etc.)
+  // Fixed position on right: x=3420 (aligned with right margin), y=2356
+  const pageNumStr = pageNumber < 10 ? `0${pageNumber}` : `${pageNumber}`
+  ctx.font = '900 135px Inter, sans-serif'
+  ctx.fillStyle = '#737373'
+  ctx.textAlign = 'right'
+  ctx.fillText(pageNumStr, CANVAS_WIDTH - SHEET_IMAGE_X, 2356)
+
+  ctx.restore()
+}
+
+/**
  * Renders an Image Page (Studio Render, Environment, Technical Drawing)
+ * using the locked sheet template PNG as the fixed deterministic background,
+ * with the uploaded photo clipped into the fixed image box,
+ * and dynamic project text + page number rendered in fixed positions.
  */
 export async function renderImagePageCanvas(
   canvas: HTMLCanvasElement,
@@ -486,72 +601,105 @@ export async function renderImagePageCanvas(
   canvas.height = CANVAS_HEIGHT
   const ctx = canvas.getContext('2d')!
 
-  // White background
+  // 1. Draw base white
   ctx.fillStyle = '#FFFFFF'
   ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT)
 
-  // Item 4: Thin light gray outer frame (#DCDCDC) around whole sheet (inset ~1%)
-  drawPageOuterBorder(ctx, CANVAS_WIDTH, CANVAS_HEIGHT)
-
-  // Pre-load grayscale logo for the footer
-  let grayscaleLogo: HTMLCanvasElement | null = null
-  try {
-    grayscaleLogo = await getGrayscaleLogoCanvas()
-  } catch (e) {
-    console.warn('Falha ao preparar logo monocromático para rodapé do PDF:', e)
-  }
-
-  // Item 5: REMOVER endereço do topo da prancha de imagem! (Address only on cover bottom bar)
-
-  // Dimensions of usable image area:
-  // Margens laterais e superior: 88px (2.5% da largura)
-  const marginX = 88
-  const marginTop = 88
-
-  // Rodapé: ~11-12% da altura (280px), deixando a imagem com proporção ampla
-  const footerHeight = 280
-  const footerY = CANVAS_HEIGHT - footerHeight
-
-  // Imagem vai de marginTop até footerY:
-  // altura da imagem: 2480 - 88 - 372 = 2020px (~81.5% do total; do topo até o fim da imagem são 2108px = ~85% da página!)
-  const areaW = CANVAS_WIDTH - marginX * 2
-  const areaH = footerY - marginTop
-  const areaX = marginX
-  const areaY = marginTop
-
-  // Light gray hairline bounding box (#DCDCDC)
-  ctx.strokeStyle = '#DCDCDC'
-  ctx.lineWidth = 2
-  ctx.strokeRect(areaX, areaY, areaW, areaH)
-
-  // Draw image or placeholder inside the area
+  // 2. Draw user image inside the deterministic photo area
   if (imageUrl) {
     try {
       const img = await loadImage(imageUrl)
-      drawImageCover(ctx, img, areaX, areaY, areaW, areaH)
+      drawImageCover(ctx, img, SHEET_IMAGE_X, SHEET_IMAGE_Y, SHEET_IMAGE_WIDTH, SHEET_IMAGE_HEIGHT)
     } catch {
-      // Draw fallback error container
       ctx.fillStyle = '#F7F7F5'
-      ctx.fillRect(areaX, areaY, areaW, areaH)
+      ctx.fillRect(SHEET_IMAGE_X, SHEET_IMAGE_Y, SHEET_IMAGE_WIDTH, SHEET_IMAGE_HEIGHT)
       ctx.fillStyle = '#8E8E8E'
       ctx.font = '500 32px Inter, sans-serif'
       ctx.textAlign = 'center'
-      ctx.fillText(`Imagem não carregada (${fallbackLabel})`, CANVAS_WIDTH / 2, areaY + areaH / 2)
+      ctx.fillText(
+        `Imagem não carregada (${fallbackLabel})`,
+        CANVAS_WIDTH / 2,
+        SHEET_IMAGE_Y + SHEET_IMAGE_HEIGHT / 2,
+      )
     }
   } else {
-    // Empty state
     ctx.fillStyle = '#F7F7F5'
-    ctx.fillRect(areaX, areaY, areaW, areaH)
+    ctx.fillRect(SHEET_IMAGE_X, SHEET_IMAGE_Y, SHEET_IMAGE_WIDTH, SHEET_IMAGE_HEIGHT)
     ctx.fillStyle = '#A0A0A0'
     ctx.font = '600 34px Inter, sans-serif'
     ctx.textAlign = 'center'
-    ctx.fillText(fallbackLabel, CANVAS_WIDTH / 2, areaY + areaH / 2 - 15)
+    ctx.fillText(fallbackLabel, CANVAS_WIDTH / 2, SHEET_IMAGE_Y + SHEET_IMAGE_HEIGHT / 2 - 15)
     ctx.font = '400 22px Inter, sans-serif'
-    ctx.fillText('Nenhuma imagem anexada', CANVAS_WIDTH / 2, areaY + areaH / 2 + 30)
+    ctx.fillText(
+      'Nenhuma imagem anexada',
+      CANVAS_WIDTH / 2,
+      SHEET_IMAGE_Y + SHEET_IMAGE_HEIGHT / 2 + 30,
+    )
   }
 
-  // Draw Standard Footer with grayscale logo
-  drawFooterCanvas(ctx, data, pageNumber, CANVAS_WIDTH, footerY, footerHeight, grayscaleLogo)
+  // 3. Draw the locked template overlay (moldura, divider, footer labels, logo, copyright box)
+  let drewTemplate = false
+  try {
+    const templateImg = await getOfficialSheetTemplateImage()
+    if (templateImg && templateImg.width > 0 && templateImg.height > 0) {
+      // The locked template PNG has transparent/black image area.
+      // We only want the frame and footer locked.
+      // Notice: the template PNG has the entire border and footer.
+      // Draw the footer and borders directly from the locked template image:
+      // Outer border top & sides:
+      // In fact, the template PNG is 3508 x 2480. We can draw the footer strip:
+      // From y=2198 to 2480:
+      ctx.drawImage(
+        templateImg,
+        0,
+        SHEET_FOOTER_Y - 2,
+        CANVAS_WIDTH,
+        CANVAS_HEIGHT - SHEET_FOOTER_Y + 2,
+        0,
+        SHEET_FOOTER_Y - 2,
+        CANVAS_WIDTH,
+        CANVAS_HEIGHT - SHEET_FOOTER_Y + 2,
+      )
+      // And outer border:
+      drawPageOuterBorder(ctx, CANVAS_WIDTH, CANVAS_HEIGHT)
+      // And image bounding box border:
+      ctx.save()
+      ctx.strokeStyle = '#DCDCDC'
+      ctx.lineWidth = 2
+      ctx.strokeRect(SHEET_IMAGE_X, SHEET_IMAGE_Y, SHEET_IMAGE_WIDTH, SHEET_IMAGE_HEIGHT)
+      ctx.restore()
+      drewTemplate = true
+    }
+  } catch (err) {
+    console.warn('Falha ao usar folha-01 PNG como template travado:', err)
+  }
+
+  // Fallback to programmatic footer if template PNG could not be loaded
+  if (!drewTemplate) {
+    drawPageOuterBorder(ctx, CANVAS_WIDTH, CANVAS_HEIGHT)
+    ctx.strokeStyle = '#DCDCDC'
+    ctx.lineWidth = 2
+    ctx.strokeRect(SHEET_IMAGE_X, SHEET_IMAGE_Y, SHEET_IMAGE_WIDTH, SHEET_IMAGE_HEIGHT)
+    let grayscaleLogo: HTMLCanvasElement | null = null
+    try {
+      grayscaleLogo = await getGrayscaleLogoCanvas()
+    } catch {
+      /* intentionally ignored */
+    }
+    drawFooterCanvas(
+      ctx,
+      data,
+      pageNumber,
+      CANVAS_WIDTH,
+      SHEET_FOOTER_Y,
+      CANVAS_HEIGHT - SHEET_FOOTER_Y,
+      grayscaleLogo,
+    )
+    return
+  }
+
+  // 4. Render dynamic text values and page number over the locked template
+  drawSheetDynamicValues(ctx, data, pageNumber)
 }
 
 /**
