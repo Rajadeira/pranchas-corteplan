@@ -84,13 +84,16 @@ export default function Projetos() {
   const projectGroups: ProjectGroup[] = useMemo(() => {
     const groupsMap = new Map<string, ProjectRecord[]>()
 
-    // Identify root for each record: either parent_id or its own id
+    // Identify root for each record: either parent_id or its own id.
+    // Also include normalized cliente name in lineage grouping key as a defensive guarantee
+    // so projects with different clients can NEVER accidentally be grouped together into a single card.
     allProjects.forEach((p) => {
       const rootId = p.parent_id || p.id
-      if (!groupsMap.has(rootId)) {
-        groupsMap.set(rootId, [])
+      const groupKey = `${(p.cliente || '').trim().toLowerCase()}:::${rootId}`
+      if (!groupsMap.has(groupKey)) {
+        groupsMap.set(groupKey, [])
       }
-      groupsMap.get(rootId)!.push(p)
+      groupsMap.get(groupKey)!.push(p)
     })
 
     const result: ProjectGroup[] = []

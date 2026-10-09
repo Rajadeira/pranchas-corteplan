@@ -108,9 +108,15 @@ export default function Index() {
     const editId = searchParams.get('edit')
 
     if (editId) {
-      loadExistingProject(editId)
+      // Only reload if we aren't already viewing this exact project
+      if (projectId !== editId) {
+        loadExistingProject(editId)
+      }
+    } else if (projectId) {
+      // If URL no longer has ?edit= (e.g. user clicked "Nova Prancha" in header), reset form to blank state
+      handleStartNewBlank(false)
     }
-  }, [location.search])
+  }, [location.search, projectId])
 
   const loadExistingProject = async (id: string) => {
     setIsLoadingProject(true)
@@ -180,7 +186,7 @@ export default function Index() {
     }
   }
 
-  const handleStartNewBlank = () => {
+  const handleStartNewBlank = (showToast = true) => {
     setLoadedProject(null)
     setProjectId(undefined)
     setCurrentVersion(1)
@@ -201,11 +207,15 @@ export default function Index() {
     setDesenhoPreview(null)
     setExistingDesenhoFilename(undefined)
     setLineageVersions([])
-    navigate('/', { replace: true })
-    toast({
-      title: 'Nova prancha iniciada',
-      description: 'O formulário foi resetado para uma nova prancha em branco (v1).',
-    })
+    if (location.search) {
+      navigate('/', { replace: true })
+    }
+    if (showToast) {
+      toast({
+        title: 'Nova prancha iniciada',
+        description: 'O formulário foi resetado para uma nova prancha em branco (v1).',
+      })
+    }
   }
 
   // Handlers for image uploads
@@ -472,7 +482,7 @@ export default function Index() {
             <Button
               type="button"
               variant="ghost"
-              onClick={handleStartNewBlank}
+              onClick={() => handleStartNewBlank(true)}
               disabled={isSaving || isLoadingProject}
               className="text-xs text-[#6B6B6B] hover:text-[#1F1F1F] hover:bg-[#F7F7F5] h-10 px-3 font-medium"
             >

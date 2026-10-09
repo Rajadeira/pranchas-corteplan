@@ -76,7 +76,12 @@ export const getProjectVersions = async (project: ProjectRecord): Promise<Projec
     filter,
     sort: '-version,-created',
   })
-  return versions
+
+  // Defensive filter: only include versions matching this project's client name (case-insensitive)
+  // to avoid displaying records from another project if parent_id was previously corrupted
+  const targetCliente = (project.cliente || '').trim().toLowerCase()
+  const filtered = versions.filter((v) => (v.cliente || '').trim().toLowerCase() === targetCliente)
+  return filtered.length > 0 ? filtered : versions
 }
 
 export const saveProject = async (
@@ -145,6 +150,57 @@ export const saveProject = async (
   // Otherwise: CREATE A NEW VERSION (v2, v3, ...) keeping previous versions intact
   // 1. Fetch current record to find rootId and calculate highest version number
   const currentRecord = await getProjectById(payload.id)
+
+  // CRITICAL SAFETY CHECK:
+  // If the user modified the 'cliente' name completely (or it doesn't match the current record's
+  // lineage), they are designing a different project and should NOT branch off an unrelated project's lineage!
+  const isDifferentProject =
+    payload.cliente.trim().toLowerCase() !== (currentRecord.cliente || '').trim().toLowerCase()
+
+  if (isDifferentProject) {
+    // Treat as brand new independent project (v1)
+    const formData = new FormData()
+    formData.append('user_id', userId)
+    formData.append('cliente', payload.cliente)
+    formData.append('modelo', payload.modelo)
+    formData.append('data', payload.data)
+    formData.append('vendedor', payload.vendedor)
+    formData.append('projeto', payload.projeto)
+    formData.append('responsavel', payload.responsavel)
+    formData.append('include_ambiente', payload.include_ambiente ? 'true' : 'false')
+    formData.append('version', '1')
+    if (payload.version_notes) {
+      formData.append('version_notes', payload.version_notes)
+    }
+
+    if (payload.render_file) {
+      formData.append('render_imagem', payload.render_file)
+    } else if (payload.existing_render_imagem) {
+      const fileUrl = getProjectFileUrl(currentRecord, payload.existing_render_imagem)
+      const fileObj = await urlToFile(fileUrl, payload.existing_render_imagem)
+      if (fileObj) formData.append('render_imagem', fileObj)
+    }
+
+    if (payload.ambiente_file) {
+      formData.append('ambiente_imagem', payload.ambiente_file)
+    } else if (payload.existing_ambiente_imagem) {
+      const fileUrl = getProjectFileUrl(currentRecord, payload.existing_ambiente_imagem)
+      const fileObj = await urlToFile(fileUrl, payload.existing_ambiente_imagem)
+      if (fileObj) formData.append('ambiente_imagem', fileObj)
+    }
+
+    if (payload.desenho_file) {
+      formData.append('desenho_imagem', payload.desenho_file)
+    } else if (payload.existing_desenho_imagem) {
+      const fileUrl = getProjectFileUrl(currentRecord, payload.existing_desenho_imagem)
+      const fileObj = await urlToFile(fileUrl, payload.existing_desenho_imagem)
+      if (fileObj) formData.append('desenho_imagem', fileObj)
+    }
+
+    const record = await pb.collection('projects').create<ProjectRecord>(formData)
+    return { record, isNewVersion: false }
+  }
+
   const rootId = currentRecord.parent_id || currentRecord.id
 
   // 2. Query all existing versions in this lineage to compute next version number
