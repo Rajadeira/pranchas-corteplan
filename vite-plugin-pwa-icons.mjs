@@ -1,7 +1,7 @@
 /**
  * Plugin Vite que roda o gerador de ícones (pwa-icons-plugin.mjs) no build,
- * ANTES do vite copiar public/ para dist/. Também remove os ícones antigos
- * (versão anterior, sem sufixo -v2) do public/ para não subirem no dist.
+ * ANTES do vite copiar public/ para dist/. Também remove os ícones das versões
+ * anteriores (sem sufixo e com sufixo -v2) do public/ para não subirem no dist.
  */
 import path from 'node:path'
 import fs from 'node:fs'
@@ -10,8 +10,9 @@ import { generateIcons, GENERATED_ICON_PATHS } from './pwa-icons-plugin.mjs'
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 
-/** Nomes dos ícones da versão anterior (sem sufixo -v2) a remover do public/. */
+/** Nomes dos ícones de versões anteriores a remover do public/. */
 const OLD_ICON_BASENAMES = [
+  // v1 (sem sufixo)
   'icon-48.png',
   'icon-72.png',
   'icon-96.png',
@@ -23,16 +24,28 @@ const OLD_ICON_BASENAMES = [
   'maskable-icon-512.png',
   'apple-touch-icon.png',
   'favicon.ico',
+  // v2 (letra C deformada — figura estranha reportada pelo usuário)
+  'icon-48-v2.png',
+  'icon-72-v2.png',
+  'icon-96-v2.png',
+  'icon-144-v2.png',
+  'icon-192-v2.png',
+  'icon-512-v2.png',
+  'icon-1024-v2.png',
+  'maskable-icon-192-v2.png',
+  'maskable-icon-512-v2.png',
+  'apple-touch-icon-v2.png',
+  'favicon-v2.ico',
 ]
 
 export function pwaIconsPlugin() {
   return {
-    name: 'pwa-icons-v2',
+    name: 'pwa-icons-v3',
     apply: 'build',
     buildStart() {
       generateIcons()
-      // Remove ícones da versão anterior de public/icons (e o favicon.ico
-      // antigo), para que o dist só leve os arquivos -v2.
+      // Remove ícones das versões anteriores de public/icons (e os favicons
+      // antigos), para que o dist só leve os arquivos da versão atual.
       const iconsDir = path.join(HERE, 'public', 'icons')
       if (fs.existsSync(iconsDir)) {
         for (const name of OLD_ICON_BASENAMES) {
@@ -40,14 +53,16 @@ export function pwaIconsPlugin() {
           if (fs.existsSync(p)) fs.rmSync(p)
         }
       }
-      const oldFavicon = path.join(HERE, 'public', 'favicon.ico')
-      if (fs.existsSync(oldFavicon)) fs.rmSync(oldFavicon)
+      for (const oldFavicon of ['favicon.ico', 'favicon-v2.ico']) {
+        const p = path.join(HERE, 'public', oldFavicon)
+        if (fs.existsSync(p)) fs.rmSync(p)
+      }
       // Garante que os arquivos gerados existam (fallback caso public/icons
       // não exista ainda).
       for (const rel of GENERATED_ICON_PATHS) {
         const abs = path.join(ViteRoot(), rel)
         if (!fs.existsSync(abs)) {
-          throw new Error(`[pwa-icons-v2] ícone não gerado: ${rel}`)
+          throw new Error(`[pwa-icons-v3] ícone não gerado: ${rel}`)
         }
       }
     },

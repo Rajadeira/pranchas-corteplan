@@ -1,18 +1,29 @@
 /**
- * Gera os ícones do PWA (PNG 192/512, maskable 192/512, apple-touch 180 e
+ * Gera os ícones do PWA (PNG 48–1024, maskable 192/512, apple-touch 180 e
  * favicon.ico 48): fundo BRANCO puro com a LETRA "C" em laranja Corteplan
  * (#F2612A), centralizada — desenhada proceduralmente em RGBA puro.
  *
- * O desenho da letra é um PATH GEOMÉTRICO bold (não uma fonte, não um arco):
- * um "C" com haste superior e inferior retas e um arco suave no lado
- * esquerdo, como um C bold de fonte sans geométrica (Mont/Avenir/Futura
- * ExtraBold). Nada de anel-donut.
+ * O desenho da letra NÃO usa path SVG, fonte nem parseamento de arcos (o
+ * método anterior, com arcos concêntricos parseados à mão, produziu uma
+ * figura deformada). Aqui a construção é booleana por pixel, impossível de
+ * sair errada:
+ *   1. círculo laranja cheio (raio R);
+ *   2. círculo branco concêntrico menor (raio r) por cima → forma o ANEL;
+ *   3. "mordida" branca retangular no lado direito-centro (x > bx e |y| < hy)
+ *      → abre o C;
+ *   4. corte vertical em x = T → terminais retos e grossos, como numa sans
+ *      geométrica bold (Futura/Mont ExtraBold).
+ *
+ * Ao final, VALIDA os PNGs gerados lendo os pixels do arquivo: anel laranja à
+ * esquerda/topo/baixo, centro branco, abertura branca à direita, cantos
+ * brancos e terminais laranja. Qualquer falha QUEBRA O BUILD — o "C" nunca
+ * mais sai deformado sem ninguém notar.
  *
  * Uso: node pwa-icons-plugin.mjs
  * (também roda automaticamente no build, via vite-plugin-pwa-icons.mjs)
  *
- * Nomes de arquivo com sufixo -v2: mudar o nome força o navegador/Windows a
- * invalidar o cache do ícone antigo (logo recortado), sem depender de headers.
+ * Nomes de arquivo com sufixo -v3: mudar o nome força o navegador/Windows a
+ * invalidar o cache do ícone antigo, sem depender de headers.
  */
 import fs from 'node:fs'
 import path from 'node:path'
@@ -24,9 +35,10 @@ const HERE = path.dirname(fileURLToPath(import.meta.url))
 const PUBLIC_DIR = path.join(HERE, 'public')
 const ICONS_DIR = path.join(PUBLIC_DIR, 'icons')
 
-// Sufixo de cache-busting nos nomes de arquivo (o conteúdo mudou em relação à
-// versão anterior; novo nome ⇒ nova URL ⇒ navegador/Windows buscam de novo).
-const V = 'v2'
+// Sufixo de cache-busting nos nomes de arquivo (a arte mudou em relação à
+// versão -v2, que saía deformada; novo nome ⇒ nova URL ⇒ navegador/Windows
+// buscam de novo).
+const V = 'v3'
 
 /**
  * Lista dos arquivos de ícone que o gerador produz, em caminhos relativos à
@@ -34,17 +46,17 @@ const V = 'v2'
  * o manifest/index.html referenciam exatamente esses caminhos (/icons/...).
  */
 export const GENERATED_ICON_PATHS = [
-  'public/icons/icon-48-v2.png',
-  'public/icons/icon-72-v2.png',
-  'public/icons/icon-96-v2.png',
-  'public/icons/icon-144-v2.png',
-  'public/icons/icon-192-v2.png',
-  'public/icons/icon-512-v2.png',
-  'public/icons/icon-1024-v2.png',
-  'public/icons/maskable-icon-192-v2.png',
-  'public/icons/maskable-icon-512-v2.png',
-  'public/icons/apple-touch-icon-v2.png',
-  'public/favicon-v2.ico',
+  `public/icons/icon-48-${V}.png`,
+  `public/icons/icon-72-${V}.png`,
+  `public/icons/icon-96-${V}.png`,
+  `public/icons/icon-144-${V}.png`,
+  `public/icons/icon-192-${V}.png`,
+  `public/icons/icon-512-${V}.png`,
+  `public/icons/icon-1024-${V}.png`,
+  `public/icons/maskable-icon-192-${V}.png`,
+  `public/icons/maskable-icon-512-${V}.png`,
+  `public/icons/apple-touch-icon-${V}.png`,
+  `public/favicon-${V}.ico`,
 ]
 
 // Laranja da marca Corteplan, igual ao theme_color do manifest e ao laranja
@@ -54,6 +66,70 @@ const BRAND_ORANGE = { r: 0xf2, g: 0x61, b: 0x2a }
 const SIZES = [48, 72, 96, 144, 192, 512]
 const MASKABLE_SIZES = [192, 512]
 const APPLE_TOUCH_SIZE = 180
+
+// Fração do lado do ícone ocupada pela caixa da letra (100 unidades).
+const LETTER_RATIO = 0.78
+// Maskable: a área segura do Chrome é um círculo de 80% do lado (raio 40%);
+// com a letra em 62% do lado, o C fica inteiro dentro do recorte circular.
+const LETTER_RATIO_MASKABLE = 0.62
+const LETTER_RATIO_APPLE = 0.8
+
+// ---------------------------------------------------------------------------
+// Geometria da letra "C" (viewBox 100x100, origem no CENTRO da letra)
+// ---------------------------------------------------------------------------
+
+// R: raio externo do anel; r: raio interno (furo branco) → espessura 24.
+// hy: meia-altura da abertura (mordida); bx: início da mordida (x > bx);
+// T: corte vertical dos terminais (face reta do braço).
+const C = { R: 50, r: 26, hy: 14, bx: 18, T: 32.5 }
+// Caixa da letra (bounding box) em unidades, para centralizar opticalmente.
+const C_BBOX = { minX: -C.R, maxX: C.T, minY: -C.R, maxY: C.R }
+
+/**
+ * Cobertura [0..1] do pixel na silhueta do "C", em unidades da letra.
+ * dx/dy relativos ao centro da letra; px = tamanho de 1 unidade em pixels.
+ */
+function letterCCoverage(dx, dy, px) {
+  const dist = Math.sqrt(dx * dx + dy * dy)
+  const dRing = Math.min(C.R - dist, dist - C.r) // >0 dentro do anel
+  const dBite = Math.min(dx - C.bx, C.hy - Math.abs(dy)) // >0 dentro da mordida
+  const dCut = C.T - dx // >0 à esquerda do corte vertical dos terminais
+  const d = Math.min(dRing, -dBite, dCut) // >0 dentro da letra
+  const aa = 0.75 / px // suavização de ~0.75px na borda
+  return Math.min(1, Math.max(0, d / aa + 0.5))
+}
+
+/**
+ * Desenha o ícone: fundo branco opaco + letra "C" laranja centralizada.
+ * - size: lado do quadrado em px
+ * - letterRatio: fração do lado ocupada pela caixa da letra (100 unidades)
+ * Retorna RGBA (Buffer) pronto para encodePng.
+ */
+function drawLetterCIcon(size, letterRatio) {
+  const rgba = Buffer.alloc(size * size * 4, 255) // fundo branco opaco
+  const pxPerUnit = (size * letterRatio) / 100
+  // Centro óptico: centro da bounding box da letra no centro do ícone.
+  const boxCx = (C_BBOX.minX + C_BBOX.maxX) / 2
+  const boxCy = (C_BBOX.minY + C_BBOX.maxY) / 2
+  const cx = size / 2
+  const cy = size / 2
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const cov = letterCCoverage(
+        (x + 0.5 - cx) / pxPerUnit - boxCx,
+        (y + 0.5 - cy) / pxPerUnit - boxCy,
+        pxPerUnit,
+      )
+      if (cov <= 0) continue
+      const i = (y * size + x) * 4
+      rgba[i] = Math.round(255 + (BRAND_ORANGE.r - 255) * cov)
+      rgba[i + 1] = Math.round(255 + (BRAND_ORANGE.g - 255) * cov)
+      rgba[i + 2] = Math.round(255 + (BRAND_ORANGE.b - 255) * cov)
+      rgba[i + 3] = 255
+    }
+  }
+  return rgba
+}
 
 // ---------------------------------------------------------------------------
 // Codificador PNG (zlib puro, sem dependências)
@@ -112,177 +188,41 @@ function encodePng(width, height, rgba) {
 }
 
 // ---------------------------------------------------------------------------
-// Desenho da letra "C" — path geométrico bold, centralizado
+// Decodificador PNG (só o que este gerador produz: filtro none, RGBA 8bit) —
+// usado pela validação para conferir os pixels do ARQUIVO gerado.
 // ---------------------------------------------------------------------------
 
-/**
- * Extrai os pontos da silhueta de um "C" bold geométrico, num viewBox de
- * referência com caixa da letra em x:4..84, y:8..92 (80 de largura, 84 de
- * altura, centro em 44,50).
- *
- * Contorno: terminal superior direito → haste superior reta → meia-volta no
- * arco externo (à esquerda) → haste inferior reta → terminal inferior direito
- * → face interna → arco interno concêntrico → face interna do terminal
- * superior → fecha.
- *
- * Espessura uniforme de 22 unidades (≈26% da altura da letra): haste superior
- * e inferior retas, arcos externo/interno CONCÊNTRICOS (mesmo centro 46,50,
- * raios 42 e 20) e terminais cortados verticalmente — como o C bold de uma
- * sans geométrica (Futura/Mont ExtraBold). Sem anel-donut, sem afunilar.
- */
-function letterCPath() {
-  const w = 22 // espessura do traço
-  const cx = 46 // centro (x) dos arcos
-  const cy = 50 // centro (y) dos arcos
-  const rOut = 42 // raio externo (meia-volta exata: corda = 2r)
-  const rIn = rOut - w // 20 — raio interno, concêntrico
-  const top = cy - rOut // 8
-  const bottom = cy + rOut // 92
-  const right = 84 // face direita: terminais retos, cortados na vertical
-  const innerTop = cy - rIn // 30
-  const innerBottom = cy + rIn // 70
-
-  const p = []
-  // Terminal superior: canto direito → início do arco externo.
-  p.push(`M ${right} ${top}`)
-  p.push(`L ${cx} ${top}`)
-  // Arco externo: meia-volta descendo pela esquerda (anti-horário em tela).
-  p.push(`A ${rOut} ${rOut} 0 0 0 ${cx} ${bottom}`)
-  // Haste inferior: até o terminal direito.
-  p.push(`L ${right} ${bottom}`)
-  // Face interna do terminal inferior.
-  p.push(`L ${right} ${innerBottom}`)
-  p.push(`L ${cx} ${innerBottom}`)
-  // Arco interno: meia-volta subindo pela esquerda (horário em tela).
-  p.push(`A ${rIn} ${rIn} 0 0 1 ${cx} ${innerTop}`)
-  // Face interna do terminal superior e fecho.
-  p.push(`L ${right} ${innerTop}`)
-  p.push('Z')
-  return p.join(' ')
-}
-
-/** Converte o path SVG do "C" em lista de segmentos (linhas e arcos). */
-function parseLetterCSegments() {
-  const path = letterCPath()
-  const tokens = path.match(/[MLAZ]|-?\d+(?:\.\d+)?/g) || []
-  const segs = []
-  let i = 0
-  let cur = { x: 0, y: 0 }
-  while (i < tokens.length) {
-    const cmd = tokens[i++]
-    if (cmd === 'M' || cmd === 'L') {
-      const x = parseFloat(tokens[i++])
-      const y = parseFloat(tokens[i++])
-      if (cmd === 'M') cur = { x, y }
-      else segs.push({ type: 'L', from: cur, to: { x, y } })
-      cur = { x, y }
-    } else if (cmd === 'A') {
-      const rx = parseFloat(tokens[i++])
-      const ry = parseFloat(tokens[i++])
-      const rot = parseFloat(tokens[i++])
-      const largeArc = parseFloat(tokens[i++])
-      const sweep = parseFloat(tokens[i++])
-      const x = parseFloat(tokens[i++])
-      const y = parseFloat(tokens[i++])
-      segs.push({ type: 'A', from: cur, to: { x, y }, rx, ry, rot, largeArc, sweep })
-      cur = { x, y }
-    } else if (cmd === 'Z') {
-      segs.push({ type: 'L', from: cur, to: { x: cur.x, y: cur.y } })
+function decodePngRgba(buf) {
+  const sig = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
+  if (!buf.subarray(0, 8).equals(sig)) throw new Error('assinatura PNG inválida')
+  let width = 0
+  let height = 0
+  const idats = []
+  let off = 8
+  while (off < buf.length) {
+    const len = buf.readUInt32BE(off)
+    const type = buf.toString('ascii', off + 4, off + 8)
+    const data = buf.subarray(off + 8, off + 8 + len)
+    if (type === 'IHDR') {
+      width = data.readUInt32BE(0)
+      height = data.readUInt32BE(4)
+      if (data[8] !== 8 || data[9] !== 6) throw new Error('PNG não é RGBA 8bit')
+    } else if (type === 'IDAT') {
+      idats.push(data)
+    } else if (type === 'IEND') {
+      break
     }
+    off += 12 + len
   }
-  return segs
-}
-
-/**
- * Verifica se o ponto (px,py) está DENTRO da silhueta do "C" (viewBox 100).
- * Usa ray casting horizontal contra a poligonal: segmentos de linha contam
- * direto; arcos são aproximados por polilinhas de alta resolução antes.
- */
-function pointInLetterC(px, py, segsCache) {
-  const segs = segsCache
-  let inside = false
-  for (const seg of segs) {
-    const pts = seg.type === 'A' ? approxArc(seg) : [seg.from, seg.to]
-    for (let k = 0; k < pts.length - 1; k++) {
-      const { x: x1, y: y1 } = pts[k]
-      const { x: x2, y: y2 } = pts[k + 1]
-      if (y1 === y2) continue
-      const yMin = Math.min(y1, y2)
-      const yMax = Math.max(y1, y2)
-      if (py < yMin || py >= yMax) continue
-      const t = (py - y1) / (y2 - y1)
-      const xCross = x1 + t * (x2 - x1)
-      if (xCross > px) inside = !inside
-    }
+  const raw = zlib.inflateSync(Buffer.concat(idats))
+  const stride = width * 4
+  const rgba = Buffer.alloc(width * height * 4)
+  for (let y = 0; y < height; y++) {
+    const rowStart = y * (stride + 1)
+    if (raw[rowStart] !== 0) throw new Error('filtro PNG inesperado')
+    raw.copy(rgba, y * stride, rowStart + 1, rowStart + 1 + stride)
   }
-  return inside
-}
-
-function approxArc(seg, steps = 64) {
-  const { from, to, rx, ry, sweep } = seg
-  const dx = (to.x - from.x) / 2
-  const dy = (to.y - from.y) / 2
-  const rot = (seg.rot * Math.PI) / 180
-  const cosR = Math.cos(rot)
-  const sinR = Math.sin(rot)
-  // Centro do arco (fórmula do endpoint parameterization da spec SVG).
-  const x1p = (cosR * dx + sinR * dy) / (rx * rx)
-  const y1p = (-sinR * dx + cosR * dy) / (ry * ry)
-  const denom = x1p * x1p + y1p * y1p
-  const num = Math.max(0, 1 / denom - 1)
-  const coef = Math.sqrt(num) * (sweep === 1 ? 1 : -1)
-  const cxp = coef * x1p
-  const cyp = -coef * y1p
-  const cx = cosR * cxp * rx - sinR * cyp * ry + (from.x + to.x) / 2
-  const cy = sinR * cxp * rx + cosR * cyp * ry + (from.y + to.y) / 2
-  // Ângulos inicial e final.
-  const ang0 = Math.atan2((from.y - cy) / ry, (from.x - cx) / rx)
-  const ang1 = Math.atan2((to.y - cy) / ry, (to.x - cx) / rx)
-  let delta = ang1 - ang0
-  if (sweep === 1 && delta < 0) delta += 2 * Math.PI
-  if (sweep === 0 && delta > 0) delta -= 2 * Math.PI
-  const pts = []
-  for (let s = 0; s <= steps; s++) {
-    const t = s / steps
-    const a = ang0 + t * delta
-    pts.push({
-      x: cx + rx * Math.cos(a),
-      y: cy + ry * Math.sin(a),
-    })
-  }
-  return pts
-}
-
-/**
- * Desenha o ícone: fundo branco opaco + letra "C" laranja centralizada.
- * - size: lado do quadrado em px
- * - letterRatio: fração do lado ocupada pela caixa da letra
- * Retorna RGBA (Buffer) pronto para encodePng.
- */
-function drawLetterCIcon(size, letterRatio) {
-  const rgba = Buffer.alloc(size * size * 4, 255) // fundo branco opaco
-  const segs = parseLetterCSegments()
-  // Caixa da letra em unidades do viewBox: x 4..84 (80 de largura).
-  const scale = (size * letterRatio) / 80
-  // Centro geométrico da caixa da letra no viewBox.
-  const boxCx = 44
-  const boxCy = 50
-  const cx = size / 2
-  const cy = size / 2
-  for (let y = 0; y < size; y++) {
-    for (let x = 0; x < size; x++) {
-      const vx = (x + 0.5 - cx) / scale + boxCx
-      const vy = (y + 0.5 - cy) / scale + boxCy
-      if (pointInLetterC(vx, vy, segs)) {
-        const i = (y * size + x) * 4
-        rgba[i] = BRAND_ORANGE.r
-        rgba[i + 1] = BRAND_ORANGE.g
-        rgba[i + 2] = BRAND_ORANGE.b
-        rgba[i + 3] = 255
-      }
-    }
-  }
-  return rgba
+  return { width, height, rgba }
 }
 
 // ---------------------------------------------------------------------------
@@ -305,6 +245,91 @@ function buildIco(pngBuffer, w, h) {
 }
 
 // ---------------------------------------------------------------------------
+// VALIDAÇÃO AUTOMÁTICA — lê o PNG gerado do disco e confere pixels-chave.
+// Qualquer falha lança erro e QUEBRA O BUILD.
+// ---------------------------------------------------------------------------
+
+const isOrangeish = (r, g, b) => r > 200 && g > 40 && g < 160 && b < 110
+const isWhiteish = (r, g, b) => r > 246 && g > 246 && b > 246
+
+/** Pontos de teste em UNIDADES da letra (origem no centro da letra). */
+const VALIDATION_POINTS = [
+  { u: [-38, 0], expect: 'orange', label: 'anel à esquerda' },
+  { u: [0, -38], expect: 'orange', label: 'anel no topo' },
+  { u: [0, 38], expect: 'orange', label: 'anel na base' },
+  { u: [28, 28], expect: 'orange', label: 'terminal superior' },
+  { u: [28, -28], expect: 'orange', label: 'terminal inferior' },
+  { u: [0, 0], expect: 'white', label: 'centro do ícone' },
+  { u: [40, 0], expect: 'white', label: 'abertura à direita' },
+  { u: [42, 42], expect: 'white', label: 'canto superior direito' },
+  { u: [-42, 42], expect: 'white', label: 'canto superior esquerdo' },
+  { u: [42, -42], expect: 'white', label: 'canto inferior direito' },
+  { u: [-42, -42], expect: 'white', label: 'canto inferior esquerdo' },
+]
+
+/**
+ * Confere os pixels de um PNG de ícone já gerado.
+ * relPath: caminho relativo à raiz; letterRatio: fração usada na geração.
+ */
+function validateIconFile(relPath, letterRatio) {
+  const abs = path.join(HERE, relPath)
+  const { width, height, rgba } = decodePngRgba(fs.readFileSync(abs))
+  if (width !== height) throw new Error(`[${relPath}] não é quadrado: ${width}x${height}`)
+  const size = width
+  const pxPerUnit = (size * letterRatio) / 100
+  const boxCx = (C_BBOX.minX + C_BBOX.maxX) / 2
+  const boxCy = (C_BBOX.minY + C_BBOX.maxY) / 2
+  const errors = []
+  let orangeCount = 0
+  for (let i = 0; i < size * size; i++) {
+    if (isOrangeish(rgba[i * 4], rgba[i * 4 + 1], rgba[i * 4 + 2])) orangeCount++
+  }
+  const orangeFrac = orangeCount / (size * size)
+  if (orangeFrac < 0.12 || orangeFrac > 0.45) {
+    errors.push(`proporção de laranja ${Math.round(orangeFrac * 100)}% fora de 12–45%`)
+  }
+  for (const { u, expect, label } of VALIDATION_POINTS) {
+    // Centro do ícone → centro da bounding box da letra. É o inverso exato do
+    // mapeamento do desenho: unidade u → pixel cx + (u + boxCx) * pxPerUnit.
+    const x = Math.round(size / 2 + (u[0] + boxCx) * pxPerUnit)
+    const y = Math.round(size / 2 + (u[1] + boxCy) * pxPerUnit)
+    const xi = Math.min(size - 1, Math.max(0, x))
+    const yi = Math.min(size - 1, Math.max(0, y))
+    const i = (yi * size + xi) * 4
+    const r = rgba[i]
+    const g = rgba[i + 1]
+    const b = rgba[i + 2]
+    const ok = expect === 'orange' ? isOrangeish(r, g, b) : isWhiteish(r, g, b)
+    if (!ok) {
+      errors.push(`${label} (${xi},${yi}) esperado ${expect}, veio rgb(${r},${g},${b})`)
+    }
+  }
+  if (errors.length) {
+    throw new Error(`[pwa-icons] VALIDAÇÃO FALHOU em ${relPath}:\n  - ${errors.join('\n  - ')}`)
+  }
+}
+
+function validateIcons() {
+  for (const size of SIZES) validateIconFile(`public/icons/icon-${size}-${V}.png`, LETTER_RATIO)
+  validateIconFile(`public/icons/icon-1024-${V}.png`, LETTER_RATIO)
+  for (const size of MASKABLE_SIZES) {
+    validateIconFile(`public/icons/maskable-icon-${size}-${V}.png`, LETTER_RATIO_MASKABLE)
+  }
+  validateIconFile(`public/icons/apple-touch-icon-${V}.png`, LETTER_RATIO_APPLE)
+  // favicon.ico: header ICO válido + PNG de 48 embutido no offset 22.
+  const ico = fs.readFileSync(path.join(HERE, `public/favicon-${V}.ico`))
+  if (!(ico[0] === 0 && ico[1] === 0 && ico[2] === 1 && ico[3] === 0 && ico[4] === 1)) {
+    throw new Error('[pwa-icons] favicon-v3.ico com header ICO inválido')
+  }
+  if (!ico.subarray(22, 30).equals(encodePng(0, 0, Buffer.alloc(0)).subarray(0, 8))) {
+    throw new Error('[pwa-icons] favicon-v3.ico sem PNG embutido na posição esperada')
+  }
+  console.log(
+    `[pwa-icons] validação OK: letra "C" confirmada por pixels em ${GENERATED_ICON_PATHS.length} arquivos`,
+  )
+}
+
+// ---------------------------------------------------------------------------
 // Geração
 // ---------------------------------------------------------------------------
 
@@ -313,33 +338,33 @@ export function generateIcons() {
     fs.mkdirSync(ICONS_DIR, { recursive: true })
   }
   for (const size of SIZES) {
-    // Letra C em ~78% do lado (visual forte, margem nas 4 bordas).
-    const rgba = drawLetterCIcon(size, 0.78)
-    fs.writeFileSync(path.join(ICONS_DIR, `icon-${size}-v2.png`), encodePng(size, size, rgba))
+    const rgba = drawLetterCIcon(size, LETTER_RATIO)
+    fs.writeFileSync(path.join(ICONS_DIR, `icon-${size}-${V}.png`), encodePng(size, size, rgba))
   }
-  // Ícone 1024 (App Store/lojas que pedem ícone grande) — mesmo tratamento.
+  // Ícone 1024 (lojas que pedem ícone grande) — mesmo tratamento.
   {
-    const rgba = drawLetterCIcon(1024, 0.78)
-    fs.writeFileSync(path.join(ICONS_DIR, 'icon-1024-v2.png'), encodePng(1024, 1024, rgba))
+    const rgba = drawLetterCIcon(1024, LETTER_RATIO)
+    fs.writeFileSync(path.join(ICONS_DIR, `icon-1024-${V}.png`), encodePng(1024, 1024, rgba))
   }
   for (const size of MASKABLE_SIZES) {
-    // Maskable: letra C em 62% do lado — a área segura do Chrome é um círculo
-    // de 80% do lado; assim o C fica inteiro dentro do recorte circular.
-    const rgba = drawLetterCIcon(size, 0.62)
+    const rgba = drawLetterCIcon(size, LETTER_RATIO_MASKABLE)
     fs.writeFileSync(
-      path.join(ICONS_DIR, `maskable-icon-${size}-v2.png`),
+      path.join(ICONS_DIR, `maskable-icon-${size}-${V}.png`),
       encodePng(size, size, rgba),
     )
   }
-  const apple = drawLetterCIcon(APPLE_TOUCH_SIZE, 0.82)
+  const apple = drawLetterCIcon(APPLE_TOUCH_SIZE, LETTER_RATIO_APPLE)
   fs.writeFileSync(
-    path.join(ICONS_DIR, 'apple-touch-icon-v2.png'),
+    path.join(ICONS_DIR, `apple-touch-icon-${V}.png`),
     encodePng(APPLE_TOUCH_SIZE, APPLE_TOUCH_SIZE, apple),
   )
 
   // favicon.ico com o PNG de 48x48 embutido.
-  const favicon48 = fs.readFileSync(path.join(ICONS_DIR, 'icon-48-v2.png'))
-  fs.writeFileSync(path.join(PUBLIC_DIR, 'favicon-v2.ico'), buildIco(favicon48, 48, 48))
+  const favicon48 = fs.readFileSync(path.join(ICONS_DIR, `icon-48-${V}.png`))
+  fs.writeFileSync(path.join(PUBLIC_DIR, `favicon-${V}.ico`), buildIco(favicon48, 48, 48))
+
+  // Validação automática: lê os PNGs de volta e confere os pixels do "C".
+  validateIcons()
 }
 
 // Execução direta (node pwa-icons-plugin.mjs)
