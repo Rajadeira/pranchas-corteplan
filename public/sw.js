@@ -9,7 +9,7 @@
  *   arquivos) NUNCA é cacheado — evita servir sessão/pranchas obsoletas.
  */
 
-const CACHE_NAME = 'corteplan-shell-v1'
+const CACHE_NAME = 'corteplan-shell-v2'
 
 // URLs do shell que precisam estar disponíveis para o fallback offline.
 const PRECACHE_URLS = ['/', '/index.html', '/offline.html', '/manifest.webmanifest']
