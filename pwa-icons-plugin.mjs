@@ -20,6 +20,25 @@ const ASSETS_DIR = path.join(HERE, 'src', 'assets')
 const PUBLIC_DIR = path.join(HERE, 'public')
 const ICONS_DIR = path.join(PUBLIC_DIR, 'icons')
 
+/**
+ * Lista dos arquivos de ícone que o gerador produz, em caminhos relativos à
+ * raiz do projeto — o plugin de build usa isso para copiá-los para o dist/ e
+ * o manifest/index.html referenciam exatamente esses caminhos (/icons/...).
+ */
+export const GENERATED_ICON_PATHS = [
+  'public/icons/icon-48.png',
+  'public/icons/icon-72.png',
+  'public/icons/icon-96.png',
+  'public/icons/icon-144.png',
+  'public/icons/icon-192.png',
+  'public/icons/icon-512.png',
+  'public/icons/icon-1024.png',
+  'public/icons/maskable-icon-192.png',
+  'public/icons/maskable-icon-512.png',
+  'public/icons/apple-touch-icon.png',
+  'public/favicon.ico',
+]
+
 const LOGO_FILE = path.join(ASSETS_DIR, 'logo-novo-corteplan-ffd51.jpg')
 
 const SIZES = [48, 72, 96, 144, 192, 512]
@@ -181,6 +200,11 @@ export function generateIcons() {
   for (const size of SIZES) {
     const rgba = composeIcon(logoRgba, lw, lh, size, 0.92)
     fs.writeFileSync(path.join(ICONS_DIR, `icon-${size}.png`), encodePng(size, size, rgba))
+  }
+  // Ícone 1024 (App Store/lojas que pedem ícone grande) — mesmo tratamento.
+  {
+    const rgba = composeIcon(logoRgba, lw, lh, 1024, 0.92)
+    fs.writeFileSync(path.join(ICONS_DIR, 'icon-1024.png'), encodePng(1024, 1024, rgba))
   }
   for (const size of MASKABLE_SIZES) {
     // Maskable: logo em 80% do lado (safe zone do Chrome), resto fundo branco.

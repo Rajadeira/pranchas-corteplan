@@ -11,12 +11,14 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { LogOut, FolderKanban, PlusCircle } from 'lucide-react'
+import { LogOut, FolderKanban, PlusCircle, MonitorDown } from 'lucide-react'
+import { useInstallPrompt } from '@/lib/pwa'
 
 export default function Layout() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
+  const { canInstall, promptInstall } = useInstallPrompt()
 
   const handleLogout = () => {
     logout()
@@ -131,6 +133,17 @@ export default function Layout() {
                         <span>Meus Projetos</span>
                       </Link>
                     </DropdownMenuItem>
+                    {canInstall && (
+                      <DropdownMenuItem
+                        onClick={() => {
+                          void promptInstall()
+                        }}
+                        className="cursor-pointer text-xs flex items-center py-2 px-2.5"
+                      >
+                        <MonitorDown className="mr-2 h-4 w-4 text-[#F2612A]" />
+                        <span>Instalar app</span>
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
                       onClick={handleLogout}

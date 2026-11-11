@@ -2,6 +2,24 @@
 
 Este projeto foi criado de ponta a ponta com o [Skip](https://goskip.dev).
 
+## 📱 PWA — Ícones gerados no build
+
+Os ícones PNG do PWA (192, 512, maskable, apple-touch e favicon) **não são
+commitados no repositório** — são gerados automaticamente a cada `vite build`
+pelo plugin `vite-plugin-pwa-icons.mjs`, a partir do logo oficial
+(`src/assets/logo-novo-corteplan-ffd51.jpg`) com decodificador JPEG próprio
+(`pwa-jpeg-decode.mjs`, sem dependências).
+
+Para gerar manualmente (ex.: se o logo mudar):
+
+```bash
+node pwa-icons-plugin.mjs
+```
+
+Os ícones são gravados em `public/icons/` e copiados para `dist/icons/` pelo
+plugin, então o `public/manifest.webmanifest` e o `index.html` sempre
+referenciam arquivos que existem na saída do build.
+
 ## 🚀 Stack Tecnológica
 
 - **React 19** - Biblioteca JavaScript para construção de interfaces

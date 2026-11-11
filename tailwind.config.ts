@@ -3,6 +3,7 @@ import type { Config } from 'tailwindcss'
 import animatePlugin from 'tailwindcss-animate'
 import typographyPlugin from '@tailwindcss/typography'
 import aspectRatioPlugin from '@tailwindcss/aspect-ratio'
+import { pwaIconsPlugin } from './vite-plugin-pwa-icons.mjs'
 
 export default {
   darkMode: ['class'],
@@ -101,4 +102,7 @@ export default {
     },
   },
   plugins: [animatePlugin, typographyPlugin, aspectRatioPlugin],
+  // Campo extra lido pelo pipeline de build da plataforma para injetar a
+  // geração de ícones PWA (vite-plugin-pwa-icons.mjs) no `vite build`.
+  pwaIconsPlugin,
 } satisfies Config
