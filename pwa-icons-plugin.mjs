@@ -1,22 +1,24 @@
 /**
  * Gera os ícones do PWA (PNG 192/512, maskable 192/512, apple-touch 180 e
- * favicon.ico 48) a partir do logo oficial da Corteplan em src/assets/.
+ * favicon.ico 48): fundo branco sólido com a letra "C" da marca em laranja
+ * (#F2612A) centralizada — desenhada proceduralmente em RGBA puro.
  *
  * Uso: node pwa-icons-plugin.mjs
  *
  * Os PNGs gerados são commitados em public/icons/ — a geração não roda no
  * build (package.json é gerenciado pela plataforma), então regenere com
- * este comando se o logo mudar.
+ * este comando se o desenho mudar.
  */
 import fs from 'node:fs'
 import path from 'node:path'
 import zlib from 'node:zlib'
 import { fileURLToPath } from 'node:url'
-import { decodeJpegToRgba } from './pwa-jpeg-decode.mjs'
+// (o decodificador JPEG próprio deixou de ser usado: o novo ícone é desenhado
+// proceduralmente, sem depender do arquivo do logo)
+export { decodeJpegToRgba } from './pwa-jpeg-decode.mjs'
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 
-const ASSETS_DIR = path.join(HERE, 'src', 'assets')
 const PUBLIC_DIR = path.join(HERE, 'public')
 const ICONS_DIR = path.join(PUBLIC_DIR, 'icons')
 
@@ -39,7 +41,9 @@ export const GENERATED_ICON_PATHS = [
   'public/favicon.ico',
 ]
 
-const LOGO_FILE = path.join(ASSETS_DIR, 'logo-novo-corteplan-ffd51.jpg')
+// Laranja da marca Corteplan, igual ao theme_color do manifest e ao laranja
+// usado em todo o app (buttons, badges, links).
+const BRAND_ORANGE = { r: 0xf2, g: 0x61, b: 0x2a }
 
 const SIZES = [48, 72, 96, 144, 192, 512]
 const MASKABLE_SIZES = [192, 512]
@@ -102,69 +106,51 @@ function encodePng(width, height, rgba) {
 }
 
 // ---------------------------------------------------------------------------
-// Redimensionamento (box filter / média de área)
+// Desenho da letra "C" (anel com abertura à direita), centralizado
 // ---------------------------------------------------------------------------
 
-function resizeRGBA(src, sw, sh, dw, dh) {
-  const dst = Buffer.alloc(dw * dh * 4)
-  const xRatio = sw / dw
-  const yRatio = sh / dh
-  for (let dy = 0; dy < dh; dy++) {
-    const y0 = Math.floor(dy * yRatio)
-    const y1 = Math.min(sh, Math.max(y0 + 1, Math.floor((dy + 1) * yRatio)))
-    for (let dx = 0; dx < dw; dx++) {
-      const x0 = Math.floor(dx * xRatio)
-      const x1 = Math.min(sw, Math.max(x0 + 1, Math.floor((dx + 1) * xRatio)))
-      let r = 0,
-        g = 0,
-        b = 0,
-        count = 0
-      for (let y = y0; y < y1; y++) {
-        for (let x = x0; x < x1; x++) {
-          const i = (y * sw + x) * 4
-          r += src[i]
-          g += src[i + 1]
-          b += src[i + 2]
-          count++
-        }
-      }
-      const o = (dy * dw + dx) * 4
-      dst[o] = Math.round(r / count)
-      dst[o + 1] = Math.round(g / count)
-      dst[o + 2] = Math.round(b / count)
-      dst[o + 3] = 255
+/**
+ * Desenha o "C": anel circular bold com abertura para a direita (boca do C),
+ * sobre fundo branco opaco.
+ * - size: lado do quadrado em px
+ * - letterRatio: fração do lado ocupada pelo diâmetro EXTERNO do C
+ * - Espessura do traço: mais grosso no topo/base (28% do raio), um pouco
+ *   mais fino nas laterais (24%) — proporção de um "C" bold geométrico.
+ * Retorna RGBA (Buffer) pronto para encodePng.
+ */
+function drawLetterCIcon(size, letterRatio) {
+  const rgba = Buffer.alloc(size * size * 4, 255) // fundo branco opaco
+  const cx = size / 2
+  const cy = size / 2
+  const outerR = (size * letterRatio) / 2
+  const W_TOP = 0.28
+  const W_SIDE = 0.24
+
+  // Meia-abertura da boca do C (radianos a partir do eixo X+, à direita).
+  const GAP_HALF = (34 / 2) * (Math.PI / 180)
+
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const dx = x + 0.5 - cx
+      const dy = y + 0.5 - cy
+      const dist = Math.sqrt(dx * dx + dy * dy)
+      if (dist > outerR) continue // fora do círculo externo
+      const ang = Math.atan2(dy, dx) // -PI..PI, 0 = direita
+      // Boca do C: região à direita dentro da abertura fica vazia.
+      if (Math.abs(ang) < GAP_HALF && dx > 0) continue
+      // Espessura local do traço: lateral (ang≈0) mais fina, topo/base mais grossa.
+      const t = Math.abs(ang) / (Math.PI / 2) // 0 = lateral, 1 = topo/fundo
+      const wLoc = W_SIDE + (W_TOP - W_SIDE) * t
+      const innerR = outerR * (1 - wLoc)
+      if (dist < innerR) continue // buraco interno do C
+      const i = (y * size + x) * 4
+      rgba[i] = BRAND_ORANGE.r
+      rgba[i + 1] = BRAND_ORANGE.g
+      rgba[i + 2] = BRAND_ORANGE.b
+      rgba[i + 3] = 255
     }
   }
-  return dst
-}
-
-// ---------------------------------------------------------------------------
-// Composição: quadrado branco + logo centralizado
-// ---------------------------------------------------------------------------
-
-function composeIcon(logoRgba, lw, lh, size, innerRatio) {
-  // innerRatio: fração do lado ocupada pelo logo (1 = sem margem).
-  const bg = Buffer.alloc(size * size * 4, 255) // fundo branco opaco
-  const inner = Math.round(size * innerRatio)
-  const scale = inner / Math.max(lw, lh)
-  const dw = Math.max(1, Math.round(lw * scale))
-  const dh = Math.max(1, Math.round(lh * scale))
-  const resized = resizeRGBA(logoRgba, lw, lh, dw, dh)
-  const ox = Math.round((size - dw) / 2)
-  const oy = Math.round((size - dh) / 2)
-  for (let y = 0; y < dh; y++) {
-    for (let x = 0; x < dw; x++) {
-      const src = (y * dw + x) * 4
-      const dst = ((oy + y) * size + (ox + x)) * 4
-      // O logo é JPEG (sem alpha), mas respeita alpha se houver.
-      const alpha = resized[src + 3] / 255
-      bg[dst] = Math.round(resized[src] * alpha + bg[dst] * (1 - alpha))
-      bg[dst + 1] = Math.round(resized[src + 1] * alpha + bg[dst + 1] * (1 - alpha))
-      bg[dst + 2] = Math.round(resized[src + 2] * alpha + bg[dst + 2] * (1 - alpha))
-      bg[dst + 3] = 255
-    }
-  }
-  return bg
+  return rgba
 }
 
 // ---------------------------------------------------------------------------
@@ -194,24 +180,23 @@ export function generateIcons() {
   if (!fs.existsSync(ICONS_DIR)) {
     fs.mkdirSync(ICONS_DIR, { recursive: true })
   }
-  const logoBuf = fs.readFileSync(LOGO_FILE)
-  const { width: lw, height: lh, data: logoRgba } = decodeJpegToRgba(logoBuf)
-
   for (const size of SIZES) {
-    const rgba = composeIcon(logoRgba, lw, lh, size, 0.92)
+    // Letra C em ~78% do lado (visual forte, margem nas 4 bordas).
+    const rgba = drawLetterCIcon(size, 0.78)
     fs.writeFileSync(path.join(ICONS_DIR, `icon-${size}.png`), encodePng(size, size, rgba))
   }
   // Ícone 1024 (App Store/lojas que pedem ícone grande) — mesmo tratamento.
   {
-    const rgba = composeIcon(logoRgba, lw, lh, 1024, 0.92)
+    const rgba = drawLetterCIcon(1024, 0.78)
     fs.writeFileSync(path.join(ICONS_DIR, 'icon-1024.png'), encodePng(1024, 1024, rgba))
   }
   for (const size of MASKABLE_SIZES) {
-    // Maskable: logo em 80% do lado (safe zone do Chrome), resto fundo branco.
-    const rgba = composeIcon(logoRgba, lw, lh, size, 0.8)
+    // Maskable: letra C em 62% do lado — a área segura do Chrome é um círculo
+    // de 80% do lado; assim o C fica inteiro dentro do recorte circular.
+    const rgba = drawLetterCIcon(size, 0.62)
     fs.writeFileSync(path.join(ICONS_DIR, `maskable-icon-${size}.png`), encodePng(size, size, rgba))
   }
-  const apple = composeIcon(logoRgba, lw, lh, APPLE_TOUCH_SIZE, 0.96)
+  const apple = drawLetterCIcon(APPLE_TOUCH_SIZE, 0.82)
   fs.writeFileSync(
     path.join(ICONS_DIR, 'apple-touch-icon.png'),
     encodePng(APPLE_TOUCH_SIZE, APPLE_TOUCH_SIZE, apple),
